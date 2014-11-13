@@ -7,9 +7,9 @@ Database interfacing and data buffering library based on RowSet Implementation
 
 ## Building From Source
 
-[Maven](http://maven.apache.org) is used to build, test and deploy.
+[Maven](http://maven.apache.org) is used to build and deploy.
 
-Run tests and build jars:
+Run build jar:
 
 ```sh
 $ mvn package
@@ -44,7 +44,7 @@ Any Maven based project can use it directly by adding the appropriate entries to
 
 ## Using From Binaries
 
-Packaged jars can be downloaded directly from the .
+Packaged jars can be downloaded directly from the [Releases page](https://github.com/khomisha/databuffer/releases).
 
 
 ## Contact
