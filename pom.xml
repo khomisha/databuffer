@@ -6,7 +6,7 @@
 
     <name>Databuffer</name>
     <description>Database interfacing and data buffering library based on RowSet Implementation</description>
-    <url>https://github.com/khomisha/databuffer</url>
+    <url>https://github.com/khomisha/databuffer.git</url>
 
     <licenses>
         <license>
