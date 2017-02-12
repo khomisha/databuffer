@@ -104,7 +104,7 @@ public class DataBuffer extends WebRowSetImpl {
 	private String _sPKCol;
 	private int _iPage = 1;
 	private boolean _bIsStoredProcedure = false;
-	private ArrayList< Integer > _returnValue = new ArrayList< Integer >( );
+	private ArrayList< String > _returnValue = new ArrayList< String >( );
 	private SQLModifier _sqlModifier = new SQLModifier( );
 	private Connection _conn;
 
@@ -134,6 +134,7 @@ public class DataBuffer extends WebRowSetImpl {
 	 */
 	public void close( ) {
 		try {
+			closeConn( );
 			super.close( );
 		}
 		catch( SQLException e ) {
@@ -367,11 +368,15 @@ public class DataBuffer extends WebRowSetImpl {
 		Row[] data = collection.toArray( new Row[ collection.size( ) ] );
 		StringBuffer sb = new StringBuffer( );
 		sb.append( "[" );
+		int iRow = 0;
 		for( Row row : data ) {
 			sb.append( gson.toJson( row.getOrigRow( ) ) );
-			sb.append( "," );	
+			if( iRow < data.length - 1 ) {
+				sb.append( "," );
+			}
+			iRow++;
 		}
-		sb.replace( sb.length( ) - 1, sb.length( ), "]" );
+		sb.append( "]" );
 		LOG.debug( sb.toString( ) );
 		return( sb.toString( ) );		
 	}
@@ -390,7 +395,7 @@ public class DataBuffer extends WebRowSetImpl {
 	 * 
 	 * @return the sql query execution result.
 	 */
-	public ArrayList< Integer > getReturnValue( ) {
+	public ArrayList< String > getReturnValue( ) {
 		return( _returnValue );
 	}
 	
@@ -508,37 +513,45 @@ public class DataBuffer extends WebRowSetImpl {
 			moveToInsertRow( );
 			for( Column col : _metaData.getColList( ) ) {
 				Object value = null;
+				int iColIndex = col.getColNum( ) + 1;
 				String sValue = row[ col.getColNum( ) ];
-				int iType = _metaData.getColumnType( col.getColNum( ) + 1 );
+				int iType = _metaData.getColumnType( iColIndex );
 				try {
-					if( iType == Types.TIMESTAMP ) {
-						value = new Timestamp( 
-							( getEnvironment( ).getServerDateFormat( ).parse( ( sValue ) ).getTime( ) ) 
-						);
-					} else if( 
-						iType == Types.TINYINT || 
-						iType == Types.SMALLINT || 
-						iType == Types.INTEGER 
-					) {
-						value = new Integer( sValue );
-					} else if( iType == Types.BIGINT ) {
-						value = new Long( sValue );					
-					} else if( iType == Types.DOUBLE ) {
-						value = new Double( sValue );
-					} else if( iType == Types.FLOAT ) {
-						value = new Float( sValue );
-					} else if( iType == Types.BOOLEAN ) {
-						value = new Boolean( sValue );					
-					} else if( iType == Types.VARCHAR ) {
-						value = sValue;
+					if( !"".equals( sValue ) ) {
+						if( iType == Types.TIMESTAMP ) {
+							value = new Timestamp( 
+								( getEnvironment( ).getServerDateFormat( ).parse( ( sValue ) ).getTime( ) ) 
+							);
+						} else if( 
+							iType == Types.TINYINT || 
+							iType == Types.SMALLINT || 
+							iType == Types.INTEGER 
+						) {
+							value = new Integer( sValue );
+						} else if( iType == Types.BIGINT ) {
+							value = new Long( sValue );					
+						} else if( iType == Types.DOUBLE ) {
+							value = new Double( sValue );
+						} else if( iType == Types.FLOAT ) {
+							value = new Float( sValue );
+						} else if( iType == Types.BOOLEAN ) {
+							value = new Boolean( sValue );					
+						}
 					}
+					if( iType == Types.VARCHAR ) {
+						value = sValue;
+					}				
 				}
 				catch( ParseException e ) {
 					ParseException ex = new ParseException( col.getName( ) + ": " + sValue, 0 );
 					ex.initCause( e );
 					throw ex;
 				}
-				updateObject( col.getColNum( ) + 1, value );
+				if( value == null ) {
+					updateNull( iColIndex );
+				} else {
+					updateObject( iColIndex, value );
+				}
 			}
 			insertRow( );
 			moveToCurrentRow( );
@@ -581,11 +594,18 @@ public class DataBuffer extends WebRowSetImpl {
 	 * @throws InvalidDatabufferDesc 
 	 */
 	public int retrieve( ) throws SQLException, InvalidDatabufferDesc {
+		Connection conn = null;
 		int iPageSize = getPageSize( );
-		Connection conn = getEnvironment( ).getTransObject( ).getConnection( RETRIEVE );
 		if( iPageSize > 0 ) {
-			// server paging on, init connection and save it
-			_conn = conn;
+			// server paging on
+			if( _conn == null ) {
+				conn = getEnvironment( ).getTransObject( ).getConnection( RETRIEVE );
+				_conn = conn;
+			} else {
+				conn = _conn;
+			}
+		} else {
+			conn = getEnvironment( ).getTransObject( ).getConnection( RETRIEVE );			
 		}
 		try { 
 			LOG.debug( getDataBufferName( ) + ": " + getCommand( ) );
@@ -719,7 +739,8 @@ public class DataBuffer extends WebRowSetImpl {
 	@SuppressWarnings( "unchecked" )
 	public void save( 
 		int iQueryType, 
-		int iDataFormat, 
+		int iDataFormat,
+		boolean bBatch,
 		Object data 
 	) 	throws SQLException, IOException, StandardException, ParseException, InvalidDatabufferDesc {
 		DataBuffer db = null;
@@ -736,8 +757,12 @@ public class DataBuffer extends WebRowSetImpl {
 					db.insertData( ( List< List< Serializable > > )data );
 				}
 			}
-			for( int iRow = 1; iRow < db.size( ) + 1; iRow++ ) {
-				db.save( iQueryType, iRow );
+			if( bBatch ) {
+				db.saveBatch( iQueryType );				
+			} else {
+				for( int iRow = 1; iRow < db.size( ) + 1; iRow++ ) {
+					db.save( iQueryType, iRow );
+				}
 			}
 			retrieve( );
 			_returnValue.addAll( db.getReturnValue( ) );
@@ -780,12 +805,16 @@ public class DataBuffer extends WebRowSetImpl {
 	 * @throws SQLException
 	 */
 	public void saveBatch( int iQueryType ) throws SQLException {
-		if( iQueryType == INSERT ) {
-			executeBatch( _insert );
-		} else if( iQueryType == UPDATE ) {
-			executeBatch( _update );
-		} else if( iQueryType == DELETE ) {
-			executeBatch( _delete );
+		if( _bIsStoredProcedure ) {
+			executeBatch( iQueryType, _sp );
+		} else {
+			if( iQueryType == INSERT ) {
+				executeBatch( _insert );
+			} else if( iQueryType == UPDATE ) {
+				executeBatch( _update );
+			} else if( iQueryType == DELETE ) {
+				executeBatch( _delete );
+			}
 		}
 	}
 
@@ -820,6 +849,21 @@ public class DataBuffer extends WebRowSetImpl {
 	}
 	
 	/**
+	 * Inserts data to the data buffer immediately following the
+	 * current row.
+	 * 
+	 * @param data
+	 *            the data to insert
+	 * 
+	 * @throws SQLException
+	 */
+	public void insertData( ArrayList< ArrayList< Serializable > > data ) throws SQLException {
+		for( List< Serializable > row : data ) {
+			insertDataRow( row );		
+		}
+	}
+
+	/**
 	 * Inserts the data row into this data buffer immediately following the
 	 * current row.
 	 * 
@@ -846,8 +890,9 @@ public class DataBuffer extends WebRowSetImpl {
 	}
 
 	/**
-	 * Sets the size of the page, which specifies how many rows have to be
-	 * retrieved at a time. Two conditions should be performed: 1. Page size
+	 * Sets the size of the page for server paging @see javax.sql.rowset.CachedRowSet, 
+	 * which specifies how many rows have to be retrieved at a time. 
+	 * Two conditions should be performed: 1. Page size
 	 * should be defined on client side as > 0 2. Query definition in data
 	 * buffer description should be contain special column 'row_count', which
 	 * return query row count. Here is DBMS depended solution for Postgresql
@@ -883,15 +928,15 @@ public class DataBuffer extends WebRowSetImpl {
 	 * @throws SQLException
 	 * @throws InvalidDatabufferDesc 
 	 */
-	protected void setPageSize( 
-		Integer iSize 
-	) throws SQLException, InvalidDatabufferDesc {
+	protected void setPageSize( Integer iSize ) throws SQLException, InvalidDatabufferDesc {
 		if( 
 			iSize != null &&
 			iSize > 0 &&
 			!"".equals( getDescription( ).getTable( ).getRowCountCol( ) ) 
 		) {
 			super.setPageSize( iSize );
+		} else {
+			super.setPageSize( 0 );			
 		}
 	}
 
@@ -926,21 +971,70 @@ public class DataBuffer extends WebRowSetImpl {
 	 */
 	private void execute( int iQueryType, SQLQuery query ) throws SQLException {
 		Connection conn = getEnvironment( ).getTransObject( ).getConnection( iQueryType );
+		CallableStatement stmt = null;
 		try {
-			LOG.debug( "executing query: " + query.getQuery( ) );
-			CallableStatement stmt = conn.prepareCall( query.getQuery( ) );
-			stmt.registerOutParameter( 1, Types.INTEGER );
+			stmt = conn.prepareCall( query.getQuery( ) );
+			stmt.registerOutParameter( 1, Types.VARCHAR );
 			stmt.setInt( 2, iQueryType );
 			int iItem = 3;
 			for( String sParm : query.getParmName( ) ) {
 				stmt.setObject( iItem, getObject( sParm ) );
 				iItem++;
 			}
+			LOG.debug( "executing query: " + stmt.toString( ) );
 			stmt.execute( );
-			_returnValue.add( stmt.getInt( 1 ) );
+			_returnValue.add( stmt.getString( 1 ) );
 		}
 		catch( SQLException e ) {
-			throw new SQLException( query.getQuery( ), e );
+			throw new SQLException( stmt.toString( ), e );
+		}
+		finally {
+			conn.close( );
+		}
+	}
+
+	/**
+	 * Executes batch query - stored procedure. To be sure to define right format in
+	 * data buffer description file to call stored procedure (property
+	 * 'updateTableName'). Postgresql feature stored procedure must return void 
+	 * otherwise java.lang.NullPointerException at org.postgresql.core.v3.SimpleParameterList.getV3Length
+	 * raises
+	 * 
+	 * @param iQueryType
+	 *            the sql modification query type
+	 *            {@link org.homedns.mkh.databuffer.DataBuffer#INSERT},
+	 *            {@link org.homedns.mkh.databuffer.DataBuffer#UPDATE},
+	 *            {@link org.homedns.mkh.databuffer.DataBuffer#DELETE}
+	 * @param query
+	 *            the sql query object
+	 * 
+	 * @throws SQLException
+	 */
+	private void executeBatch( int iQueryType, SQLQuery query ) throws SQLException {
+		Connection conn = getEnvironment( ).getTransObject( ).getConnection( iQueryType );
+		CallableStatement stmt = null;
+		try {
+			stmt = conn.prepareCall( query.getQuery( ) );
+			beforeFirst( );
+			while( next( ) ) {
+				stmt.setInt( 1, iQueryType );
+				int iItem = 2;
+				for( String sParm : query.getParmName( ) ) {
+					stmt.setObject( iItem, getObject( sParm ) );
+					iItem++;
+				}
+				stmt.addBatch( );
+			}
+			LOG.debug( "executing query: " + stmt.toString( ) );
+			stmt.executeBatch( );
+		}
+		catch( SQLException e ) {
+			SQLException ne = e.getNextException( );
+			String sErrMsg = "";
+			if( ne != null ) {
+				sErrMsg = ( ne.getMessage( ) != null ) ? ne.getMessage( ) : sErrMsg;
+			}
+			throw new SQLException( stmt.toString( ) + ": detailed message: " + sErrMsg, e );
 		}
 		finally {
 			conn.close( );
@@ -958,28 +1052,31 @@ public class DataBuffer extends WebRowSetImpl {
 	private void execute( SQLQuery query ) throws SQLException {
 		int iOperation = query.getQueryType( );
 		Connection conn = getEnvironment( ).getTransObject( ).getConnection( iOperation );
+		PreparedStatement stmt = null;
 		try {
+			stmt = conn.prepareStatement( 
+				query.getQuery( ), 
+				Statement.RETURN_GENERATED_KEYS 
+			);
 			int iItem = 1;
-			String sQuery = query.getQuery( );
-			LOG.debug( "executing query: " + sQuery );
-			PreparedStatement stmt = conn.prepareStatement( sQuery, Statement.RETURN_GENERATED_KEYS );
 			for( String sParm : query.getParmName( ) ) {
 				Object value = getObject( sParm );
 				stmt.setObject( iItem, value );
 				iItem++;
 			}
+			LOG.debug( "executing query: " + stmt.toString( ) );
 			stmt.executeUpdate( );
 			if( iOperation == INSERT ) {
 				ResultSet ids  = stmt.getGeneratedKeys( );
 				while( ids.next( ) ) { 
-					_returnValue.add( ids.getInt( _sPKCol ) );
+					_returnValue.add( ids.getString( _sPKCol ) );
 				}
 			} else if( iOperation == UPDATE ) {
-				_returnValue.add( getInt( _sPKCol ) );
+				_returnValue.add( getString( _sPKCol ) );
 			}
 		}
 		catch( SQLException e ) {
-			throw new SQLException( query.getQuery( ), e );
+			throw new SQLException( stmt.toString( ), e );
 		}
 		finally {
 			conn.close( );
@@ -995,12 +1092,10 @@ public class DataBuffer extends WebRowSetImpl {
 	 * @throws SQLException
 	 */
 	private void executeBatch( SQLQuery query ) throws SQLException {
-		int iOperation = query.getQueryType( );
-		Connection conn = getEnvironment( ).getTransObject( ).getConnection( iOperation );
+		Connection conn = getEnvironment( ).getTransObject( ).getConnection( query.getQueryType( ) );
+		PreparedStatement stmt = null;
 		try {
-			String sQuery = query.getQuery( );
-			LOG.debug( "executing query: " + sQuery );
-			PreparedStatement stmt = conn.prepareStatement( sQuery );
+			stmt = conn.prepareStatement( query.getQuery( ) );
 			beforeFirst( );
 			while( next( ) ) {
 				int iItem = 1;
@@ -1010,10 +1105,16 @@ public class DataBuffer extends WebRowSetImpl {
 				}
 				stmt.addBatch( );
 			}
+			LOG.debug( "executing query: " + stmt.toString( ) );
 			stmt.executeBatch( );
 		}
 		catch( SQLException e ) {
-			throw new SQLException( query.getQuery( ), e );
+			SQLException ne = e.getNextException( );
+			String sErrMsg = "";
+			if( ne != null ) {
+				sErrMsg = ( ne.getMessage( ) != null ) ? ne.getMessage( ) : sErrMsg;
+			}
+			throw new SQLException( stmt.toString( ) + ": detailed message: " + sErrMsg, e );
 		}
 		finally {
 			conn.close( );
