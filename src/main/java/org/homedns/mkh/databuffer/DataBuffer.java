@@ -984,6 +984,11 @@ public class DataBuffer extends WebRowSetImpl {
 			LOG.debug( "executing query: " + stmt.toString( ) );
 			stmt.execute( );
 			_returnValue.add( stmt.getString( 1 ) );
+			if( stmt.getWarnings( ) != null ) {
+				String sWarn = stmt.getWarnings( ).getMessage( );
+				_returnValue.add( sWarn );				
+				LOG.debug( "query message: " + sWarn );
+			}
 		}
 		catch( SQLException e ) {
 			throw new SQLException( stmt.toString( ), e );
