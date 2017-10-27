@@ -765,6 +765,7 @@ public class DataBuffer extends WebRowSetImpl {
 				}
 			}
 			retrieve( );
+			_returnValue.clear( );
 			_returnValue.addAll( db.getReturnValue( ) );
 		}
 		finally {
@@ -983,6 +984,7 @@ public class DataBuffer extends WebRowSetImpl {
 			}
 			LOG.debug( "executing query: " + stmt.toString( ) );
 			stmt.execute( );
+			_returnValue.clear( );
 			_returnValue.add( stmt.getString( 1 ) );
 			if( stmt.getWarnings( ) != null ) {
 				String sWarn = stmt.getWarnings( ).getMessage( );
@@ -1071,6 +1073,7 @@ public class DataBuffer extends WebRowSetImpl {
 			}
 			LOG.debug( "executing query: " + stmt.toString( ) );
 			stmt.executeUpdate( );
+			_returnValue.clear( );
 			if( iOperation == INSERT ) {
 				ResultSet ids  = stmt.getGeneratedKeys( );
 				while( ids.next( ) ) { 
