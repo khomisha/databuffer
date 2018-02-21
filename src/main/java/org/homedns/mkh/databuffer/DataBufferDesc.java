@@ -55,14 +55,14 @@ import com.google.gson.annotations.SerializedName;
  *                                         column it specifies how many rows have to be retrieved at 
  *                                         a time from database {@link org.homedns.mkh.databuffer.DataBuffer#setPageSize(Integer)}
  *                                         otherwise this is indicator for client side - rows number displayed 
- *                                         on the page	 
+ *                                         on the page, default is 0 (optional)
  *       "argType": [                    - query arguments data types {@link org.homedns.mkh.databuffer.Type}
  *       	"INT",
  *       	"TIMESTAMP"
  *       ],
  *       "reportData": "1,10"            - if this data buffer is use for reporting it indicates 
- *                                        start column and row indexes in excel sheet template where data buffer
- *                                        data should be inserted otherwise empty string
+ *                                         start column and row indexes in excel sheet template where data buffer
+ *                                         data should be inserted otherwise empty string (optional)
  *   },
  *   "columns": [                        - column section
  *        {
@@ -82,8 +82,9 @@ import com.google.gson.annotations.SerializedName;
  *                                           edit_date - only date,
  *                                           edit_time - only time,
  *                                           edit_ts - timestamp format, 
- *                                           edit - all others,
+ *                                           edit - the default style depending on data type,
  *                                           empty string for nonvisual columns
+ *           "pattern": "",              - column format pattern (optional)
  *           "limit": 0,                 - column length in bytes depends on column type	{@link Type}, for {@link Type#STRING} length calculates as 2 * limit
  *           "required": true,           - mandatory flag (true|false)
  *           "mask": "",                 - the keystroke filter mask to be applied to the column input value type (regex expression),

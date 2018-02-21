@@ -143,8 +143,7 @@ public class DataBufferMetaData extends RowSetMetaDataImpl implements MetaData {
 	 * @throws SQLException
 	 * @throws InvalidDatabufferDesc
 	 */
-	protected void onSetMetaData( Column col ) throws SQLException,
-			InvalidDatabufferDesc {
+	protected void onSetMetaData( Column col ) throws SQLException, InvalidDatabufferDesc {
 	}
 	
 	/**

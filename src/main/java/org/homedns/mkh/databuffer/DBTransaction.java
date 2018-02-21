@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2014 Mikhail Khodonov
+ * Copyright 2007-2017 Mikhail Khodonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -23,23 +23,23 @@ import java.sql.SQLException;
 import javax.sql.DataSource;
 
 /**
- * Transaction object for database connection
+ * Database transaction object
  */
 public class DBTransaction {
-	private SessionParameters _sessionParams;
-	private DataSource _dataSource;
+	private SessionParameters sessionParams;
+	private DataSource dataSource;
 
 	
 	/**
 	 * @param dataSource
-	 *            the database data source to connect
+	 *            the database data source
 	 */
 	public DBTransaction( DataSource dataSource ) {
-		_dataSource = dataSource;
+		this.dataSource = dataSource;
 	}
 
 	/**
-	 * Opens connection.
+	 * Returns connection.
 	 * 
 	 * @param iAction
 	 *            the action (retrieve, insert, update, delete)
@@ -49,22 +49,27 @@ public class DBTransaction {
 	 * @throws SQLException
 	 */
 	public Connection getConnection( int iAction ) throws SQLException {
-		Connection conn = _dataSource.getConnection( );
-		if( iAction != DataBuffer.RETRIEVE && _sessionParams != null ) {
-			_sessionParams.set2Session( conn );
+		Connection conn = getConnection( );
+		if( iAction != DataBuffer.RETRIEVE && sessionParams != null ) {
+			sessionParams.set2Session( conn );
 		}
 		return( conn );
 	}
 	
 	/**
-	 * Opens connection.
+	 * Returns connection.
 	 * 
 	 * @return the database connection
 	 * 
 	 * @throws SQLException
 	 */
 	public Connection getConnection( ) throws SQLException {
-		return( _dataSource.getConnection( ) );
+		try {
+			return( dataSource.getConnection( ) );			
+		}
+		catch( SQLException e ) {
+			throw new ResourceClosedException( e );
+		}
 	}
 
 	/**
@@ -74,7 +79,7 @@ public class DBTransaction {
 	 *            the database session parameters object to set
 	 */
 	public void setSessionParameters( SessionParameters sessionParms ) {
-		_sessionParams = sessionParms;
+		this.sessionParams = sessionParms;
 	}
 	
 	/**
@@ -83,7 +88,7 @@ public class DBTransaction {
 	 * @return the database session parameters object
 	 */
 	public SessionParameters getSessionParameters( ) {
-		return( _sessionParams );
+		return( sessionParams );
 	}
 }
 

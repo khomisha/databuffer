@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2014 Mikhail Khodonov
+ * Copyright 2011-2017 Mikhail Khodonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -96,17 +96,17 @@ public class DataBuffer extends WebRowSetImpl {
 	 */
 	public static final int SERIALIZABLE_LIST 	= 3;
 	
-	private MetaData _metaData;
-	private SQLQuery _insert;
-	private SQLQuery _delete;
-	private SQLQuery _update;
-	private SQLQuery _sp;
-	private String _sPKCol;
-	private int _iPage = 1;
-	private boolean _bIsStoredProcedure = false;
-	private ArrayList< String > _returnValue = new ArrayList< String >( );
-	private SQLModifier _sqlModifier = new SQLModifier( );
-	private Connection _conn;
+	private MetaData metaData;
+	private SQLQuery insert;
+	private SQLQuery delete;
+	private SQLQuery update;
+	private SQLQuery sp;
+	private String sPKCol;
+	private int iPage = 1;
+	private boolean bIsStoredProcedure = false;
+	private ArrayList< String > returnValue = new ArrayList< String >( );
+	private SQLModifier sqlModifier = new SQLModifier( );
+	private Connection pagingConn;
 
 	/**
 	 * @param metaData the data buffer meta data object
@@ -119,11 +119,11 @@ public class DataBuffer extends WebRowSetImpl {
 	public DataBuffer( 
 		MetaData metaData 
 	) throws IOException, SQLException, StandardException, InvalidDatabufferDesc {
-		_metaData = metaData;
-		DataBufferDesc desc = _metaData.getDescription( );
+		this.metaData = metaData;
+		DataBufferDesc desc = metaData.getDescription( );
 		setCommand( desc.getTable( ).getQuery( ) );
 		setTableName( desc.getTable( ).getUpdateTableName( ) );
-		setMetaData( _metaData );
+		setMetaData( metaData );
 		setKeyColumn( desc.getTable( ).getPKcol( ) );
 		setSQL( );
 		setPageSize( desc.getTable( ).getPageSize( ) );
@@ -149,8 +149,8 @@ public class DataBuffer extends WebRowSetImpl {
 	 * @throws SQLException
 	 */
 	public void closeConn( ) throws SQLException {
-		if( _conn != null ) {
-			_conn.close( );
+		if( getPageSize( ) > 0 && pagingConn != null ) {
+			pagingConn.close( );
 		}
 	}
 
@@ -160,7 +160,7 @@ public class DataBuffer extends WebRowSetImpl {
 	 * @return the meta data object
 	 */
 	public MetaData getMetaData( ) {
-		return( _metaData );
+		return( metaData );
 	}
 
 	/**
@@ -172,7 +172,7 @@ public class DataBuffer extends WebRowSetImpl {
 	 * @throws InvalidDatabufferDesc 
 	 */
 	public String[][] getData( ) throws SQLException, InvalidDatabufferDesc {
-		return( getData( _metaData.getColList( ) ) );
+		return( getData( metaData.getColList( ) ) );
 	}
 
 	/**
@@ -193,7 +193,7 @@ public class DataBuffer extends WebRowSetImpl {
 		while( next( ) ) {
 			int iCol = 0;
 			for( Column col : cols ) {
-				int iType = _metaData.getColumnType( col.getColNum( ) + 1 );
+				int iType = metaData.getColumnType( col.getColNum( ) + 1 );
 				if( iType == Types.TIMESTAMP ) {
 					Date date = getDate( col.getColNum( ) + 1 );
 					asData[ iRow ][ iCol ] = (
@@ -256,7 +256,7 @@ public class DataBuffer extends WebRowSetImpl {
 	) throws SQLException, InvalidDatabufferDesc {
 		List< Column > cols = new ArrayList< Column >( );
 		for( String sColName : asColName ) {
-			cols.add( _metaData.getDescription( ).getColumn( sColName ) );
+			cols.add( metaData.getDescription( ).getColumn( sColName ) );
 		}
 		return( getData( cols ) );
 	}
@@ -270,7 +270,7 @@ public class DataBuffer extends WebRowSetImpl {
 	 * @throws InvalidDatabufferDesc 
 	 */
 	public ArrayList< ArrayList< Serializable > > getDataAsList( ) throws SQLException, InvalidDatabufferDesc {
-		return( getDataAsList( _metaData.getColList( ) ) );
+		return( getDataAsList( metaData.getColList( ) ) );
 	}
 
 	/**
@@ -315,7 +315,7 @@ public class DataBuffer extends WebRowSetImpl {
 	) throws SQLException, InvalidDatabufferDesc {
 		List< Column > cols = new ArrayList< Column >( );
 		for( String sColName : asCols ) {
-			cols.add( _metaData.getDescription( ).getColumn( sColName ) );
+			cols.add( metaData.getDescription( ).getColumn( sColName ) );
 		}
 		return( getDataAsList( cols ) );
 	}
@@ -326,21 +326,21 @@ public class DataBuffer extends WebRowSetImpl {
 	 * @return the data buffer name
 	 */
 	public String getDataBufferName( ) {
-		return( _metaData.getDataBufferName( ) );
+		return( metaData.getDataBufferName( ) );
 	}
 
 	/**
 	 * {@link org.homedns.mkh.databuffer.DataBufferMetaData#getDescription()}
 	 */
 	public DataBufferDesc getDescription( ) {
-		return( _metaData.getDescription( ) );
+		return( metaData.getDescription( ) );
 	}
 
 	/**
 	 * {@link org.homedns.mkh.databuffer.DataBufferMetaData#getDescriptionAsJson()}
 	 */
 	public String getDescriptionAsJson( ) {
-		return( _metaData.getDescriptionAsJson( ) );		
+		return( metaData.getDescriptionAsJson( ) );		
 	}
 
 	/**
@@ -349,7 +349,7 @@ public class DataBuffer extends WebRowSetImpl {
 	 * @return the data buffer environment
 	 */
 	public Environment getEnvironment( ) {
-		return( _metaData.getEnvironment( ) );
+		return( metaData.getEnvironment( ) );
 	}
 
 	/**
@@ -387,7 +387,7 @@ public class DataBuffer extends WebRowSetImpl {
 	 * @return page number.
 	 */
 	public int getPage( ) {
-		return( _iPage );
+		return( iPage );
 	}
 
 	/**
@@ -396,7 +396,7 @@ public class DataBuffer extends WebRowSetImpl {
 	 * @return the sql query execution result.
 	 */
 	public ArrayList< String > getReturnValue( ) {
-		return( _returnValue );
+		return( returnValue );
 	}
 	
 	/**
@@ -451,12 +451,12 @@ public class DataBuffer extends WebRowSetImpl {
 	 * @throws InvalidDatabufferDesc 
 	 */
 	private String modifyQuery( String sAddWhere ) throws StandardException, InvalidDatabufferDesc {
-		if( !_sqlModifier.isParsed( ) ) {
-			_sqlModifier.parseQuery( 
-				_metaData.getDescription( ).getTable( ).getQuery( ) 
+		if( !sqlModifier.isParsed( ) ) {
+			sqlModifier.parseQuery( 
+				metaData.getDescription( ).getTable( ).getQuery( ) 
 			);			
 		}
-		return( _sqlModifier.modifyQuery( sAddWhere ) );
+		return( sqlModifier.modifyQuery( sAddWhere ) );
 	}
 
 	/**
@@ -465,7 +465,7 @@ public class DataBuffer extends WebRowSetImpl {
 	public boolean nextPage( ) throws SQLException {
 		boolean bNext = super.nextPage( );
 		if( bNext ) {
-			_iPage++;
+			iPage++;
 		}
 		return( bNext );
 	}
@@ -476,7 +476,7 @@ public class DataBuffer extends WebRowSetImpl {
 	public boolean previousPage( ) throws SQLException {
 		boolean bPrevious = super.previousPage( );
 		if( bPrevious ) {
-			_iPage--;
+			iPage--;
 		}
 		return( bPrevious );
 	}
@@ -511,11 +511,11 @@ public class DataBuffer extends WebRowSetImpl {
 		}
 		for( String[] row : data ) {
 			moveToInsertRow( );
-			for( Column col : _metaData.getColList( ) ) {
+			for( Column col : metaData.getColList( ) ) {
 				Object value = null;
 				int iColIndex = col.getColNum( ) + 1;
 				String sValue = row[ col.getColNum( ) ];
-				int iType = _metaData.getColumnType( iColIndex );
+				int iType = metaData.getColumnType( iColIndex );
 				try {
 					if( !"".equals( sValue ) ) {
 						if( iType == Types.TIMESTAMP ) {
@@ -596,27 +596,21 @@ public class DataBuffer extends WebRowSetImpl {
 	public int retrieve( ) throws SQLException, InvalidDatabufferDesc {
 		Connection conn = null;
 		int iPageSize = getPageSize( );
-		if( iPageSize > 0 ) {
-			// server paging on
-			if( _conn == null ) {
-				conn = getEnvironment( ).getTransObject( ).getConnection( RETRIEVE );
-				_conn = conn;
-			} else {
-				conn = _conn;
-			}
-		} else {
-			conn = getEnvironment( ).getTransObject( ).getConnection( RETRIEVE );			
+		if( iPageSize > 0 && pagingConn == null ) {
+			// server paging switch on
+			pagingConn = getEnvironment( ).getTransObject( ).getConnection( RETRIEVE );
 		}
+		conn = iPageSize > 0 ? pagingConn : getEnvironment( ).getTransObject( ).getConnection( RETRIEVE ); 
 		try { 
 			LOG.debug( getDataBufferName( ) + ": " + getCommand( ) );
 			execute( conn );
 			if( iPageSize > 0 ) {
-				_iPage = 1;
+				iPage = 1;
 			}
 		}
 		finally {
-			// close connection if server paging off, otherwise connection is still
-			// alive until data buffer is closed or manually called closeConn()
+			// close connection if server paging switch off, otherwise connection is still
+			// alive until data buffer is closed or closeConn() should be called manually 
 			if( iPageSize <= 0 ) {
 				conn.close( );
 			}
@@ -701,15 +695,15 @@ public class DataBuffer extends WebRowSetImpl {
 	 * @throws SQLException
 	 */
 	public void save( int iQueryType ) throws SQLException {
-		if( _bIsStoredProcedure ) {
-			execute( iQueryType, _sp );
+		if( bIsStoredProcedure ) {
+			execute( iQueryType, sp );
 		} else {
 			if( iQueryType == INSERT ) {
-				execute( _insert );
+				execute( insert );
 			} else if( iQueryType == UPDATE ) {
-				execute( _update );
+				execute( update );
 			} else if( iQueryType == DELETE ) {
-				execute( _delete );
+				execute( delete );
 			}
 		}
 	}
@@ -745,7 +739,7 @@ public class DataBuffer extends WebRowSetImpl {
 	) 	throws SQLException, IOException, StandardException, ParseException, InvalidDatabufferDesc {
 		DataBuffer db = null;
 		try {
-			db = new DataBuffer( _metaData );
+			db = new DataBuffer( metaData );
 			if( iDataFormat == XML ) {
 				db.putXml( ( String )data );
 			} else if( iDataFormat == JSON ) {
@@ -765,8 +759,8 @@ public class DataBuffer extends WebRowSetImpl {
 				}
 			}
 			retrieve( );
-			_returnValue.clear( );
-			_returnValue.addAll( db.getReturnValue( ) );
+			returnValue.clear( );
+			returnValue.addAll( db.getReturnValue( ) );
 		}
 		finally {
 			if( db != null ) {
@@ -806,15 +800,15 @@ public class DataBuffer extends WebRowSetImpl {
 	 * @throws SQLException
 	 */
 	public void saveBatch( int iQueryType ) throws SQLException {
-		if( _bIsStoredProcedure ) {
-			executeBatch( iQueryType, _sp );
+		if( bIsStoredProcedure ) {
+			executeBatch( iQueryType, sp );
 		} else {
 			if( iQueryType == INSERT ) {
-				executeBatch( _insert );
+				executeBatch( insert );
 			} else if( iQueryType == UPDATE ) {
-				executeBatch( _update );
+				executeBatch( update );
 			} else if( iQueryType == DELETE ) {
-				executeBatch( _delete );
+				executeBatch( delete );
 			}
 		}
 	}
@@ -878,8 +872,10 @@ public class DataBuffer extends WebRowSetImpl {
 		int iItem = 1;
 		for( Object value : row ) {
 			if( value instanceof Date ) {
-				updateObject( iItem,
-						new Timestamp( ( ( Date )value ).getTime( ) ) );
+				updateObject( 
+					iItem,
+					new Timestamp( ( ( Date )value ).getTime( ) ) 
+				);
 			} else {
 				updateObject( iItem, value );
 			}
@@ -971,10 +967,11 @@ public class DataBuffer extends WebRowSetImpl {
 	 * @throws SQLException
 	 */
 	private void execute( int iQueryType, SQLQuery query ) throws SQLException {
-		Connection conn = getEnvironment( ).getTransObject( ).getConnection( iQueryType );
-		CallableStatement stmt = null;
-		try {
-			stmt = conn.prepareCall( query.getQuery( ) );
+		String sQuery = "";
+		try(
+			Connection conn = getEnvironment( ).getTransObject( ).getConnection( iQueryType );
+			CallableStatement stmt = conn.prepareCall( query.getQuery( ) );
+		) {
 			stmt.registerOutParameter( 1, Types.VARCHAR );
 			stmt.setInt( 2, iQueryType );
 			int iItem = 3;
@@ -982,21 +979,19 @@ public class DataBuffer extends WebRowSetImpl {
 				stmt.setObject( iItem, getObject( sParm ) );
 				iItem++;
 			}
-			LOG.debug( "executing query: " + stmt.toString( ) );
+			sQuery = stmt.toString( );
+			LOG.debug( "executing query: " + sQuery );
 			stmt.execute( );
-			_returnValue.clear( );
-			_returnValue.add( stmt.getString( 1 ) );
+			returnValue.clear( );
+			returnValue.add( stmt.getString( 1 ) );
 			if( stmt.getWarnings( ) != null ) {
 				String sWarn = stmt.getWarnings( ).getMessage( );
-				_returnValue.add( sWarn );				
+				returnValue.add( sWarn );				
 				LOG.debug( "query message: " + sWarn );
 			}
 		}
 		catch( SQLException e ) {
-			throw new SQLException( stmt.toString( ), e );
-		}
-		finally {
-			conn.close( );
+			throw new SQLException( sQuery, e );
 		}
 	}
 
@@ -1018,10 +1013,11 @@ public class DataBuffer extends WebRowSetImpl {
 	 * @throws SQLException
 	 */
 	private void executeBatch( int iQueryType, SQLQuery query ) throws SQLException {
-		Connection conn = getEnvironment( ).getTransObject( ).getConnection( iQueryType );
-		CallableStatement stmt = null;
-		try {
-			stmt = conn.prepareCall( query.getQuery( ) );
+		String sQuery = "";
+		try(
+			Connection conn = getEnvironment( ).getTransObject( ).getConnection( iQueryType );
+			CallableStatement stmt = conn.prepareCall( query.getQuery( ) );
+		) {
 			beforeFirst( );
 			while( next( ) ) {
 				stmt.setInt( 1, iQueryType );
@@ -1032,7 +1028,8 @@ public class DataBuffer extends WebRowSetImpl {
 				}
 				stmt.addBatch( );
 			}
-			LOG.debug( "executing query: " + stmt.toString( ) );
+			sQuery = stmt.toString( );
+			LOG.debug( "executing query: " + sQuery );
 			stmt.executeBatch( );
 		}
 		catch( SQLException e ) {
@@ -1041,10 +1038,7 @@ public class DataBuffer extends WebRowSetImpl {
 			if( ne != null ) {
 				sErrMsg = ( ne.getMessage( ) != null ) ? ne.getMessage( ) : sErrMsg;
 			}
-			throw new SQLException( stmt.toString( ) + ": detailed message: " + sErrMsg, e );
-		}
-		finally {
-			conn.close( );
+			throw new SQLException( sQuery + ": detailed message: " + sErrMsg, e );
 		}
 	}
 
@@ -1057,37 +1051,35 @@ public class DataBuffer extends WebRowSetImpl {
 	 * @throws SQLException
 	 */
 	private void execute( SQLQuery query ) throws SQLException {
-		int iOperation = query.getQueryType( );
-		Connection conn = getEnvironment( ).getTransObject( ).getConnection( iOperation );
-		PreparedStatement stmt = null;
-		try {
-			stmt = conn.prepareStatement( 
-				query.getQuery( ), 
-				Statement.RETURN_GENERATED_KEYS 
+		String sQuery = "";
+		int iOperation = query.getOperation( );
+		try(
+			Connection conn = getEnvironment( ).getTransObject( ).getConnection( iOperation );
+			PreparedStatement stmt = conn.prepareStatement( 
+				query.getQuery( ), Statement.RETURN_GENERATED_KEYS 
 			);
+		) {
 			int iItem = 1;
 			for( String sParm : query.getParmName( ) ) {
 				Object value = getObject( sParm );
 				stmt.setObject( iItem, value );
 				iItem++;
 			}
-			LOG.debug( "executing query: " + stmt.toString( ) );
+			sQuery = stmt.toString( );
+			LOG.debug( "executing query: " + sQuery );
 			stmt.executeUpdate( );
-			_returnValue.clear( );
+			returnValue.clear( );
 			if( iOperation == INSERT ) {
-				ResultSet ids  = stmt.getGeneratedKeys( );
+				ResultSet ids = stmt.getGeneratedKeys( );
 				while( ids.next( ) ) { 
-					_returnValue.add( ids.getString( _sPKCol ) );
+					returnValue.add( ids.getString( sPKCol ) );
 				}
 			} else if( iOperation == UPDATE ) {
-				_returnValue.add( getString( _sPKCol ) );
+				returnValue.add( getString( sPKCol ) );
 			}
 		}
 		catch( SQLException e ) {
-			throw new SQLException( stmt.toString( ), e );
-		}
-		finally {
-			conn.close( );
+			throw new SQLException( sQuery, e );
 		}
 	}
 
@@ -1100,10 +1092,11 @@ public class DataBuffer extends WebRowSetImpl {
 	 * @throws SQLException
 	 */
 	private void executeBatch( SQLQuery query ) throws SQLException {
-		Connection conn = getEnvironment( ).getTransObject( ).getConnection( query.getQueryType( ) );
-		PreparedStatement stmt = null;
-		try {
-			stmt = conn.prepareStatement( query.getQuery( ) );
+		String sQuery = "";
+		try(
+			Connection conn = getEnvironment( ).getTransObject( ).getConnection( query.getOperation( ) );
+			PreparedStatement stmt = conn.prepareStatement( query.getQuery( ) );
+		) {
 			beforeFirst( );
 			while( next( ) ) {
 				int iItem = 1;
@@ -1113,7 +1106,8 @@ public class DataBuffer extends WebRowSetImpl {
 				}
 				stmt.addBatch( );
 			}
-			LOG.debug( "executing query: " + stmt.toString( ) );
+			sQuery = stmt.toString( );
+			LOG.debug( "executing query: " + sQuery );
 			stmt.executeBatch( );
 		}
 		catch( SQLException e ) {
@@ -1122,10 +1116,7 @@ public class DataBuffer extends WebRowSetImpl {
 			if( ne != null ) {
 				sErrMsg = ( ne.getMessage( ) != null ) ? ne.getMessage( ) : sErrMsg;
 			}
-			throw new SQLException( stmt.toString( ) + ": detailed message: " + sErrMsg, e );
-		}
-		finally {
-			conn.close( );
+			throw new SQLException( sQuery + ": detailed message: " + sErrMsg, e );
 		}
 	}
 
@@ -1154,7 +1145,7 @@ public class DataBuffer extends WebRowSetImpl {
 	* Sets SQL modification queries for prepared statements.
 	*/
 	private void setSQL( ) throws SQLException {
-		List< String > colNames = _metaData.getUpdatableColNames( );
+		List< String > colNames = metaData.getUpdatableColNames( );
 		if( colNames == null ) {
 			return;
 		}
@@ -1166,36 +1157,36 @@ public class DataBuffer extends WebRowSetImpl {
 		if( sTable == null || "".equals( sTable ) ) {
 			return;
 		}
-		_bIsStoredProcedure = sTable.contains( "call" );
-		if( _bIsStoredProcedure ) {
-			_sp = new SQLQuery(
+		bIsStoredProcedure = sTable.contains( "call" );
+		if( bIsStoredProcedure ) {
+			sp = new SQLQuery(
 				"{ " + sTable + 
 				"(?," + Util.fill( "?,", iColCount * 2 ).substring( 0, iColCount * 2 - 1 ) + ") }",
 				UNKNOWN
 			);
-			_sp.setParmName( colNames );
+			sp.setParmName( colNames );
 		} else {
-			_insert = new SQLQuery(
+			insert = new SQLQuery(
 				"insert into " + sTable +
 				"(" + Util.assemble( colNames, "," ) +
 				") values(" + Util.fill( "?,", iColCount * 2 ).substring( 0, iColCount * 2 - 1 ) + ")",
 				INSERT
 			);
-			_insert.setParmName( colNames );
-			_delete = new SQLQuery(
-				"delete from " + sTable + " where " + _sPKCol + " = ?",
+			insert.setParmName( colNames );
+			delete = new SQLQuery(
+				"delete from " + sTable + " where " + sPKCol + " = ?",
 				DELETE
 			);
-			_delete.addParmName( _sPKCol );
-			_update = new SQLQuery(
+			delete.addParmName( sPKCol );
+			update = new SQLQuery(
 				"update " + sTable +
 				" set " + Util.assemble( colNames, " = ?," ) + 
 				" = ?" +
-				" where " + _sPKCol + " = ?",
+				" where " + sPKCol + " = ?",
 				UPDATE
 			);
-			_update.setParmName( colNames );
-			_update.addParmName( _sPKCol );
+			update.setParmName( colNames );
+			update.addParmName( sPKCol );
 		}
 	}
 	
@@ -1208,29 +1199,29 @@ public class DataBuffer extends WebRowSetImpl {
 	 * @throws SQLException
 	 */
 	private void setKeyColumn( String sPKCol ) throws SQLException {
-		_sPKCol = sPKCol;
+		this.sPKCol = sPKCol;
 		int[] aiPKey = new int[ 1 ];
 		aiPKey[ 0 ] = findColumn( sPKCol );
 		setKeyColumns( aiPKey );
 	}
 
 	private class SQLQuery {
-		private String _sQuery;
-		private List< String > _parmName = new ArrayList< String >( );
-		private int _iOperation = UNKNOWN;
+		private String sQuery;
+		private List< String > parmName = new ArrayList< String >( );
+		private int iOperation = UNKNOWN;
 
 		/**
 		 * @param sQuery
 		 *            the query definition
-		 * @param iQueryType
-		 *            the sql modification query type
+		 * @param iOperation
+		 *            the sql operation
 		 *            {@link org.homedns.mkh.databuffer.DataBuffer#INSERT},
 		 *            {@link org.homedns.mkh.databuffer.DataBuffer#UPDATE},
 		 *            {@link org.homedns.mkh.databuffer.DataBuffer#DELETE}
 		 */
-		public SQLQuery( String sQuery, int iQueryType ) {
+		public SQLQuery( String sQuery, int iOperation ) {
 			setQuery( sQuery );
-			_iOperation = iQueryType;
+			this.iOperation = iOperation;
 		}
 
 		/**
@@ -1240,19 +1231,19 @@ public class DataBuffer extends WebRowSetImpl {
 		 *            the parameter name
 		 */
 		public void addParmName( String sParmName ) {
-			_parmName.add( sParmName );
+			parmName.add( sParmName );
 		}
 
 		/**
-		 * Returns sql modification query type.
+		 * Returns sql operation.
 		 * 
-		 * @return the sql modification query type
+		 * @return the sql operation
 		 *         {@link org.homedns.mkh.databuffer.DataBuffer#INSERT},
 		 *         {@link org.homedns.mkh.databuffer.DataBuffer#UPDATE},
 		 *         {@link org.homedns.mkh.databuffer.DataBuffer#DELETE}
 		 */
-		public int getQueryType( ) {
-			return( _iOperation );
+		public int getOperation( ) {
+			return( iOperation );
 		}
 
 		/**
@@ -1261,7 +1252,7 @@ public class DataBuffer extends WebRowSetImpl {
 		 * @return parameters names list
 		 */
 		public List< String > getParmName( ) {
-			return( _parmName );
+			return( parmName );
 		}
 		
 		/**
@@ -1270,7 +1261,7 @@ public class DataBuffer extends WebRowSetImpl {
 		 * @return query
 		 */
 		public String getQuery( ) {
-			return( _sQuery );
+			return( sQuery );
 		}
 
 		/**
@@ -1280,7 +1271,7 @@ public class DataBuffer extends WebRowSetImpl {
 		 *            the parameters names list to set
 		 */
 		public void setParmName( List< String > parmName ) {
-			_parmName.addAll( parmName );
+			this.parmName.addAll( parmName );
 		}
 
 		/**
@@ -1290,7 +1281,7 @@ public class DataBuffer extends WebRowSetImpl {
 		 *            the query to set
 		 */
 		public void setQuery( String sQuery ) {
-			_sQuery = sQuery;
+			this.sQuery = sQuery;
 		}
 	}
 	

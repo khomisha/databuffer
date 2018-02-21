@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2014 Mikhail Khodonov
+ * Copyright 2013-2018 Mikhail Khodonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -65,23 +65,24 @@ public class Column implements Serializable {
 	 */
 	public static final String EDIT_TS		= "edit_ts";
 
-	@SerializedName( "name" ) private String _sName;
-	@SerializedName( "caption" ) private String _sCaption;
-	@SerializedName( "dbName" ) private String _sDBName;
-	@SerializedName( "type" ) private String _sType;
-	@SerializedName( "update" ) private boolean _bIsUpdate;
-	@SerializedName( "validationRule" ) private String _sValidationRule;
-	@SerializedName( "validationMsg" ) private String _sValidationMsg;
-	@SerializedName( "style" ) private String _sStyle;
-	@SerializedName( "limit" ) private int _iLimit;
-	@SerializedName( "required" ) private boolean _bIsRequired;
-	@SerializedName( "mask" ) private String _sMask;
-	@SerializedName( "values" ) private Value[] _values;
-	@SerializedName( "dddbName" ) private String _sDDDBName;
-	@SerializedName( "dddbDisplayColumn" ) private String _sDDDBDisplayCol;
-	@SerializedName( "dddbDataColumn" ) private String _sDDDBDataCol;
-	@SerializedName( "reportParam" ) private String _sReportParam;
-	@SerializedName( "colNum" ) private int _iColNum;
+	@SerializedName( "name" ) private String sName;
+	@SerializedName( "caption" ) private String sCaption;
+	@SerializedName( "dbName" ) private String sDBName;
+	@SerializedName( "type" ) private String sType;
+	@SerializedName( "update" ) private boolean bUpdate;
+	@SerializedName( "validationRule" ) private String sValidationRule;
+	@SerializedName( "validationMsg" ) private String sValidationMsg;
+	@SerializedName( "style" ) private String sStyle;
+	@SerializedName( "limit" ) private int iLimit;
+	@SerializedName( "required" ) private boolean bRequired;
+	@SerializedName( "mask" ) private String sMask;
+	@SerializedName( "values" ) private Value[] values;
+	@SerializedName( "dddbName" ) private String sDDDBName;
+	@SerializedName( "dddbDisplayColumn" ) private String sDDDBDisplayCol;
+	@SerializedName( "dddbDataColumn" ) private String sDDDBDataCol;
+	@SerializedName( "reportParam" ) private String sReportParam;
+	@SerializedName( "colNum" ) private int iColNum;
+	@SerializedName( "pattern" ) private String sPattern;
 	
 	public Column( ) {
 	}
@@ -94,10 +95,10 @@ public class Column implements Serializable {
 	 * @throws InvalidDatabufferDesc 
 	 */
 	public String getName( ) throws InvalidDatabufferDesc {
-		if( _sName == null || "".equals( _sName ) ) {
+		if( sName == null || "".equals( sName ) ) {
 			throw new InvalidDatabufferDesc( "no column name" );
 		}
-		return( _sName );
+		return( sName );
 	}
 	
 	/**
@@ -107,7 +108,7 @@ public class Column implements Serializable {
 	 *            the column name to set
 	 */
 	public void setName( String sName ) {
-		_sName = sName;
+		this.sName = sName;
 	}
 	
 	/**
@@ -116,7 +117,7 @@ public class Column implements Serializable {
 	 * @return the column number
 	 */
 	public int getColNum( ) {
-		return( _iColNum );
+		return( iColNum );
 	}
 	
 	/**
@@ -125,7 +126,7 @@ public class Column implements Serializable {
 	 * @param iColNum the column number to set
 	 */
 	public void setColNum( int iColNum ) {
-		_iColNum = iColNum;
+		this.iColNum = iColNum;
 	}
 	
 	/**
@@ -134,7 +135,7 @@ public class Column implements Serializable {
 	 * @return the column caption
 	 */
 	public String getCaption( ) {
-		return( _sCaption );
+		return( sCaption );
 	}
 	
 	/**
@@ -143,7 +144,7 @@ public class Column implements Serializable {
 	 * @param sCaption the column caption to set
 	 */
 	public void setCaption( String sCaption ) {
-		_sCaption = sCaption;
+		this.sCaption = sCaption;
 	}
 	
 	/**
@@ -152,10 +153,10 @@ public class Column implements Serializable {
 	 * @return the column database name
 	 */
 	public String getDBName( ) {
-		if( _sDBName == null || "".equals( _sDBName ) ) {
+		if( sDBName == null || "".equals( sDBName ) ) {
 			return( "" );
 		}
-		return( _sDBName );
+		return( sDBName );
 	}
 	
 	/**
@@ -164,7 +165,7 @@ public class Column implements Serializable {
 	 * @param sDBName the column database name to set
 	 */
 	public void setDBName( String sDBName ) {
-		_sDBName = sDBName;
+		this.sDBName = sDBName;
 	}
 	
 	/**
@@ -175,10 +176,10 @@ public class Column implements Serializable {
 	 * @throws InvalidDatabufferDesc 
 	 */
 	public Type getType( ) throws InvalidDatabufferDesc {
-		if( _sType == null || "".equals( _sType ) ) {
+		if( sType == null || "".equals( sType ) ) {
 			throw new InvalidDatabufferDesc( getName( ) + ": no column type" );
 		}
-		return( Type.valueOf( _sType ) );
+		return( Type.valueOf( sType ) );
 	}
 	
 	/**
@@ -187,7 +188,7 @@ public class Column implements Serializable {
 	 * @param sType the column type to set
 	 */
 	public void setType( String sType ) {
-		_sType = sType;
+		this.sType = sType;
 	}
 	
 	/**
@@ -196,16 +197,16 @@ public class Column implements Serializable {
 	 * @return the column update flag
 	 */
 	public boolean isUpdate( ) {
-		return( _bIsUpdate );
+		return( bUpdate );
 	}
 	
 	/**
 	 * Sets column update flag
 	 * 
-	 * @param bIsUpdate the column update flag to set
+	 * @param bUpdate the column update flag to set
 	 */
-	public void setUpdate( boolean bIsUpdate ) {
-		_bIsUpdate = bIsUpdate;
+	public void setUpdate( boolean bUpdate ) {
+		this.bUpdate = bUpdate;
 	}
 	
 	/**
@@ -214,7 +215,7 @@ public class Column implements Serializable {
 	 * @return the column validation rule 
 	 */
 	public String getValidationRule( ) {
-		return( _sValidationRule );
+		return( sValidationRule );
 	}
 	
 	/**
@@ -223,7 +224,7 @@ public class Column implements Serializable {
 	 * @param sValidationRule the column validation rule to set
 	 */
 	public void setValidationRule( String sValidationRule ) {
-		_sValidationRule = sValidationRule;
+		this.sValidationRule = sValidationRule;
 	}
 	
 	/**
@@ -232,7 +233,7 @@ public class Column implements Serializable {
 	 * @return the validation message
 	 */
 	public String getValidationMsg( ) {
-		return( _sValidationMsg );
+		return( sValidationMsg );
 	}
 	
 	/**
@@ -241,7 +242,7 @@ public class Column implements Serializable {
 	 * @param sValidationMsg the validation message to set
 	 */
 	public void setValidationMsg( String sValidationMsg ) {
-		_sValidationMsg = sValidationMsg;
+		this.sValidationMsg = sValidationMsg;
 	}
 	
 	/**
@@ -252,10 +253,10 @@ public class Column implements Serializable {
 	 * @throws InvalidDatabufferDesc 
 	 */
 	public String getStyle( ) throws InvalidDatabufferDesc {
-		if( Column.DDDB.equals( _sStyle ) && "".equals( getDDDBName( ) ) ) {
+		if( Column.DDDB.equals( sStyle ) && "".equals( getDDDBName( ) ) ) {
 			throw new InvalidDatabufferDesc( getName( ) + ": no dropdown data buffer" );			
 		}
-		return( _sStyle );
+		return( sStyle );
 	}
 	
 	/**
@@ -264,7 +265,7 @@ public class Column implements Serializable {
 	 * @param sStyle the column style to set
 	 */
 	public void setStyle( String sStyle ) {
-		_sStyle = sStyle;
+		this.sStyle = sStyle;
 	}
 	
 	/**
@@ -273,7 +274,7 @@ public class Column implements Serializable {
 	 * @return the column length in bytes
 	 */
 	public int getLimit( ) {
-		return( _iLimit );
+		return( iLimit );
 	}
 	
 	/**
@@ -282,7 +283,7 @@ public class Column implements Serializable {
 	 * @param iLimit the column length to set
 	 */
 	public void setLimit( int iLimit ) {
-		_iLimit = iLimit;
+		this.iLimit = iLimit;
 	}
 	
 	/**
@@ -291,16 +292,16 @@ public class Column implements Serializable {
 	 * @return the column mandatory flag
 	 */
 	public boolean isRequired( ) {
-		return( _bIsRequired );
+		return( bRequired );
 	}
 	
 	/**
 	 * Sets column mandatory flag
 	 * 
-	 * @param bIsRequired the column mandatory flag to set
+	 * @param bRequired the column mandatory flag to set
 	 */
-	public void setRequired( boolean bIsRequired ) {
-		_bIsRequired = bIsRequired;
+	public void setRequired( boolean bRequired ) {
+		this.bRequired = bRequired;
 	}
 	
 	/**
@@ -310,7 +311,7 @@ public class Column implements Serializable {
 	 * @return the column mask
 	 */
 	public String getMask( ) {
-		return( _sMask );
+		return( sMask );
 	}
 	
 	/**
@@ -320,7 +321,7 @@ public class Column implements Serializable {
 	 * @param sMask the column mask to set
 	 */
 	public void setMask( String sMask ) {
-		_sMask = sMask;
+		this.sMask = sMask;
 	}
 	
 	/**
@@ -329,7 +330,7 @@ public class Column implements Serializable {
 	 * @return the values array
 	 */
 	public Value[] getValues( ) {
-		return( _values );
+		return( values );
 	}
 	
 	/**
@@ -338,7 +339,7 @@ public class Column implements Serializable {
 	 * @param values the values array to set
 	 */
 	public void setValues( Value[] values ) {
-		_values = values;
+		this.values = values;
 	}
 	
 	/**
@@ -347,7 +348,7 @@ public class Column implements Serializable {
 	 * @return the dropdown databuffer name
 	 */
 	public String getDDDBName( ) {
-		return( _sDDDBName );
+		return( sDDDBName );
 	}
 	
 	/**
@@ -356,7 +357,7 @@ public class Column implements Serializable {
 	 * @param sDDDBName the dropdown databuffer name to set
 	 */
 	public void setDDDBName( String sDDDBName ) {
-		_sDDDBName = sDDDBName;
+		this.sDDDBName = sDDDBName;
 	}
 	
 	/**
@@ -365,7 +366,7 @@ public class Column implements Serializable {
 	 * @return the dropdown data buffer display column name
 	 */
 	public String getDisplayCol( ) {
-		return( _sDDDBDisplayCol );
+		return( sDDDBDisplayCol );
 	}
 	
 	/**
@@ -375,7 +376,7 @@ public class Column implements Serializable {
 	 *            the dropdown data buffer display column name to set
 	 */
 	public void setDisplayCol( String sDDDBDisplayCol ) {
-		_sDDDBDisplayCol = sDDDBDisplayCol;
+		this.sDDDBDisplayCol = sDDDBDisplayCol;
 	}
 	
 	/**
@@ -384,7 +385,7 @@ public class Column implements Serializable {
 	 * @return the dropdown data buffer data column name
 	 */
 	public String getDataCol( ) {
-		return( _sDDDBDataCol );
+		return( sDDDBDataCol );
 	}
 	
 	/**
@@ -394,7 +395,7 @@ public class Column implements Serializable {
 	 *            the dropdown data buffer data column name to set
 	 */
 	public void setDataCol( String sDDDBDataCol ) {
-		_sDDDBDataCol = sDDDBDataCol;
+		this.sDDDBDataCol = sDDDBDataCol;
 	}
 	
 	/**
@@ -403,7 +404,7 @@ public class Column implements Serializable {
 	 * @return the indicates cell
 	 */
 	public String getReportParam( ) {
-		return( _sReportParam );
+		return( sReportParam );
 	}
 	
 	/**
@@ -413,6 +414,24 @@ public class Column implements Serializable {
 	 *            the cell (column,row) to set
 	 */
 	public void setReportParam( String sReportParam ) {
-		_sReportParam = sReportParam;
+		this.sReportParam = sReportParam;
+	}
+
+	/**
+	 * Returns column format pattern
+	 * 
+	 * @return the column format pattern
+	 */
+	public String getPattern( ) {
+		return( sPattern );
+	}
+
+	/**
+	 * Sets column format pattern
+	 * 
+	 * @param sPattern the column format pattern to set
+	 */
+	public void setPattern( String sPattern ) {
+		this.sPattern = sPattern;
 	}
 }
