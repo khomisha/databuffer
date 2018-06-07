@@ -82,7 +82,7 @@ public class Table implements Serializable {
 	 *            the data buffer retrieve query to set
 	 */
 	public void setQuery( String sQuery ) {
-		_sQuery = sQuery;
+		_sQuery = sQuery.replaceAll( "[\\n\\x0B\\f\\r]","" );
 	}
 	
 	/**

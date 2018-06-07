@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Mikhail Khodonov
+ * Copyright 2014-2018 Mikhail Khodonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -30,8 +30,7 @@ import com.akiban.sql.StandardException;
  */
 @SuppressWarnings( "serial" )
 public class FrameBufferMetaData extends DataBufferMetaData {
-	private List< Integer > _offset = new ArrayList< Integer >( );
-	private int _iSize;
+	private List< Integer > colsLength;
 
 	/**
 	 * @see org.homedns.mkh.databuffer.DataBufferMetaData#DataBufferMetaData(String, Environment)
@@ -40,40 +39,24 @@ public class FrameBufferMetaData extends DataBufferMetaData {
 		String sDataBufferName, Environment env 
 	) throws IOException, SQLException, StandardException, InvalidDatabufferDesc {
 		super( sDataBufferName, env );
-		_offset.add( 0 );
+		colsLength = new ArrayList< Integer >( );
 	}
 
 	/**
-	* Returns updatable column's offset in bytes.
+	* Returns updatable column's list of lengths in bytes.
 	*
-	* @return the columns offsets list
+	* @return the column's list of lengths
 	*/
-	public List< Integer > getOffset( ) {
-		return( _offset );
-	}
-
-	/**
-	* Returns updatable columns total size in bytes.
-	*
-	* @return the size in bytes
-	*/
-	public int getSize( ) {
-		return( _iSize );
+	public List< Integer > getColsLength( ) {
+		return( colsLength );
 	}
 
 	/**
 	 * @see org.homedns.mkh.databuffer.DataBufferMetaData#onSetMetaData(org.homedns.mkh.databuffer.Column)
 	 */
 	@Override
-	protected void onSetMetaData( 
-		Column col 
-	) throws SQLException, InvalidDatabufferDesc {
-		int iOffset = _offset.get( _offset.size( ) - 1 ) + getColLen( col );
-		_offset.add( iOffset );
-		if( col.getColNum( ) == getColumnCount( ) - 1 ) {
-			_iSize = _offset.get( _offset.size( ) - 1 );
-			_offset.remove( _offset.size( ) - 1 );
-		}
+	protected void onSetMetaData( Column col ) throws SQLException, InvalidDatabufferDesc {
+		colsLength.add( getColLen( col ) );
 	}
 
 	/**
@@ -91,15 +74,12 @@ public class FrameBufferMetaData extends DataBufferMetaData {
 		int iLimit = col.getLimit( );
 		Integer iLen = type.getLength( );
 		if( type == Type.STRING ) {
-			if( iLimit == 0 ) {
-				throw new InvalidDatabufferDesc( 
-					Util.getBundle( getEnvironment( ).getLocale( ) ).getString( "invalidColLength" ) +
-					" = 0: " + col.getName( )					
-				);
-			}
-			iLen = iLen * iLimit;
-		} else {
-			iLen = ( iLimit == 0 ) ? iLen : iLimit;
+			throw new InvalidDatabufferDesc( 
+				Util.getBundle( getEnvironment( ).getLocale( ) ).getString( "unsupportedType" ) +
+				": STRING"					
+			);
+		} else if( type == Type.HEXSTRING || type == Type.ASCIISTRING ) {
+			iLen = iLimit;
 		}
 		return( iLen );
 	}

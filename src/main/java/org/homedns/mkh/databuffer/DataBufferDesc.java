@@ -56,7 +56,7 @@ import com.google.gson.annotations.SerializedName;
  *                                         a time from database {@link org.homedns.mkh.databuffer.DataBuffer#setPageSize(Integer)}
  *                                         otherwise this is indicator for client side - rows number displayed 
  *                                         on the page, default is 0 (optional)
- *       "argType": [                    - query arguments data types {@link org.homedns.mkh.databuffer.Type}
+ *       "argType": [                    - obsolete, query arguments data types {@link org.homedns.mkh.databuffer.Type}
  *       	"INT",
  *       	"TIMESTAMP"
  *       ],
@@ -80,12 +80,13 @@ import com.google.gson.annotations.SerializedName;
  *                                           radiobutton,
  *                                           pwd - password,
  *                                           edit_date - only date,
- *                                           edit_time - only time,
+ *                                           edit_time - only time, 
  *                                           edit_ts - timestamp format, 
  *                                           edit - the default style depending on data type,
  *                                           empty string for nonvisual columns
- *           "pattern": "",              - column format pattern (optional)
- *           "limit": 0,                 - column length in bytes depends on column type	{@link Type}, for {@link Type#STRING} length calculates as 2 * limit
+ *           "pattern": "",              - column format pattern (optional) @see com.google.gwt.i18n.client.NumberFormat
+ *           "limit": 0,                 - allowable column length in characters, 0 means no limit
+ *           "width": 0,				 - column width in pixels, 0 means undefined
  *           "required": true,           - mandatory flag (true|false)
  *           "mask": "",                 - the keystroke filter mask to be applied to the column input value type (regex expression),
  *                                         Applied only for dddb, ddlb, checkbox and radiobutton styles.

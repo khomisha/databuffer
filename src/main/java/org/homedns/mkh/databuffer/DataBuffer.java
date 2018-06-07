@@ -37,8 +37,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+
 import org.apache.log4j.Logger;
 import org.homedns.mkh.sqlmodifier.SQLModifier;
+
 import com.akiban.sql.StandardException;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -104,21 +106,18 @@ public class DataBuffer extends WebRowSetImpl {
 	private String sPKCol;
 	private int iPage = 1;
 	private boolean bIsStoredProcedure = false;
-	private ArrayList< String > returnValue = new ArrayList< String >( );
-	private SQLModifier sqlModifier = new SQLModifier( );
+	private ArrayList< String > returnValue;
+	private SQLModifier sqlModifier;
 	private Connection pagingConn;
 
 	/**
 	 * @param metaData the data buffer meta data object
 	 * 
-	 * @throws IOException
-	 * @throws SQLException
-	 * @throws StandardException
-	 * @throws InvalidDatabufferDesc
+	 * @throws Exception
 	 */
-	public DataBuffer( 
-		MetaData metaData 
-	) throws IOException, SQLException, StandardException, InvalidDatabufferDesc {
+	public DataBuffer( MetaData metaData ) throws Exception {
+		returnValue = new ArrayList< String >( );
+		sqlModifier = new SQLModifier( );
 		this.metaData = metaData;
 		DataBufferDesc desc = metaData.getDescription( );
 		setCommand( desc.getTable( ).getQuery( ) );
@@ -497,17 +496,12 @@ public class DataBuffer extends WebRowSetImpl {
 	) throws SQLException, ParseException, InvalidDatabufferDesc, IOException {
 		LOG.debug( sJsonData );
 		String[][] data;
-		JsonReader reader = null;
-		try {
-			reader = new JsonReader( new StringReader( sJsonData ) );
+		try( 
+			JsonReader reader = new JsonReader( new StringReader( sJsonData ) );
+		) {
 			reader.setLenient( true );
 			Gson gson = new Gson( );
 			data = gson.fromJson( reader, String[][].class );
-		}
-		finally {
-			if( reader != null ) {
-				reader.close( );
-			}
 		}
 		for( String[] row : data ) {
 			moveToInsertRow( );
@@ -519,9 +513,7 @@ public class DataBuffer extends WebRowSetImpl {
 				try {
 					if( !"".equals( sValue ) ) {
 						if( iType == Types.TIMESTAMP ) {
-							value = new Timestamp( 
-								( getEnvironment( ).getServerDateFormat( ).parse( ( sValue ) ).getTime( ) ) 
-							);
+							value = getDateTime( sValue ); 
 						} else if( 
 							iType == Types.TINYINT || 
 							iType == Types.SMALLINT || 
@@ -736,7 +728,7 @@ public class DataBuffer extends WebRowSetImpl {
 		int iDataFormat,
 		boolean bBatch,
 		Object data 
-	) 	throws SQLException, IOException, StandardException, ParseException, InvalidDatabufferDesc {
+	) 	throws Exception {
 		DataBuffer db = null;
 		try {
 			db = new DataBuffer( metaData );
@@ -821,8 +813,9 @@ public class DataBuffer extends WebRowSetImpl {
 	 *            the data to insert
 	 * 
 	 * @throws SQLException
+	 * @throws InvalidDatabufferDesc 
 	 */
-	public void insertData( Serializable[][] data ) throws SQLException {
+	public void insertData( Serializable[][] data ) throws SQLException, InvalidDatabufferDesc {
 		for( Serializable[] row : data ) {
 			insertDataRow( Arrays.asList( row ) );					
 		}
@@ -836,8 +829,9 @@ public class DataBuffer extends WebRowSetImpl {
 	 *            the data to insert
 	 * 
 	 * @throws SQLException
+	 * @throws InvalidDatabufferDesc 
 	 */
-	public void insertData( List< List< Serializable > > data ) throws SQLException {
+	public void insertData( List< List< Serializable > > data ) throws SQLException, InvalidDatabufferDesc {
 		for( List< Serializable > row : data ) {
 			insertDataRow( row );		
 		}
@@ -851,8 +845,9 @@ public class DataBuffer extends WebRowSetImpl {
 	 *            the data to insert
 	 * 
 	 * @throws SQLException
+	 * @throws InvalidDatabufferDesc 
 	 */
-	public void insertData( ArrayList< ArrayList< Serializable > > data ) throws SQLException {
+	public void insertData( ArrayList< ArrayList< Serializable > > data ) throws SQLException, InvalidDatabufferDesc {
 		for( List< Serializable > row : data ) {
 			insertDataRow( row );		
 		}
@@ -866,8 +861,14 @@ public class DataBuffer extends WebRowSetImpl {
 	 *            the data row to insert
 	 * 
 	 * @throws SQLException
+	 * @throws InvalidDatabufferDesc 
 	 */
-	private void insertDataRow( List< Serializable > row ) throws SQLException {
+	public void insertDataRow( List< Serializable > row ) throws SQLException, InvalidDatabufferDesc {
+		if( row.size( ) > metaData.getColList( ).size( ) ) {
+			throw new IllegalArgumentException( 
+				Util.getBundle( getEnvironment( ).getLocale( ) ).getString( "tooFewColumns" ) 
+			);
+		}
 		moveToInsertRow( );
 		int iItem = 1;
 		for( Object value : row ) {
@@ -951,6 +952,19 @@ public class DataBuffer extends WebRowSetImpl {
 		return( relative( iRow - getRow( ) ) );
 	}
 	
+	/**
+	 * Parses input string value to the timestamp using setting date/time format 
+	 * 
+	 * @param sValue the input value
+	 * 
+	 * @return the timestamp
+	 * 
+	 * @throws ParseException
+	 */
+	protected Timestamp getDateTime( String sValue ) throws ParseException {
+		return( new Timestamp( getEnvironment( ).getServerDateFormat( ).parse( ( sValue ) ).getTime( ) ) );
+	}
+
 	/**
 	 * Executes query - stored procedure. To be sure to define right format in
 	 * data buffer description file to call stored procedure (property

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2014 Mikhail Khodonov
+ * Copyright 2013-2018 Mikhail Khodonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -26,7 +26,6 @@ import java.util.Arrays;
 import java.util.List;
 import javax.sql.RowSetMetaData;
 import javax.sql.rowset.RowSetMetaDataImpl;
-import com.akiban.sql.StandardException;
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
 
@@ -36,11 +35,11 @@ import com.google.gson.stream.JsonReader;
  */
 @SuppressWarnings( "serial" )
 public class DataBufferMetaData extends RowSetMetaDataImpl implements MetaData {
-	private DataBufferDesc _desc;
-	private Environment _env;
-	private List< Column > _updatableCols = new ArrayList< Column >( );
-	List< String > _colUpdName = new ArrayList< String >( );
-	private String _sDataBufferName; 
+	private DataBufferDesc desc;
+	private Environment env;
+	private List< Column > updatableCols = new ArrayList< Column >( );
+	List< String > colUpdName = new ArrayList< String >( );
+	private String sDataBufferName; 
 	
 	/**
 	 * @param sDataBufferName
@@ -55,13 +54,16 @@ public class DataBufferMetaData extends RowSetMetaDataImpl implements MetaData {
 		String sDataBufferName, 
 		Environment env 
 	) throws InvalidDatabufferDesc, IOException {
-		_env = env;
-		_sDataBufferName = sDataBufferName;
-		JsonReader in = null;
-		try {
-			in = new JsonReader( new FileReader( env.getDataBufferFilename( sDataBufferName ) ) );
-			_desc = new Gson( ).fromJson( in, DataBufferDesc.class );
-			_desc.check( );
+		this.env = env;
+		this.sDataBufferName = sDataBufferName;
+		try(
+			JsonReader in = new JsonReader( 
+				new FileReader( env.getDataBufferFilename( sDataBufferName ) ) 
+			);
+		) {
+			
+			desc = new Gson( ).fromJson( in, DataBufferDesc.class );
+			desc.check( );
 			setMetaData( );
 		}
 		catch( Exception e ) {
@@ -69,11 +71,6 @@ public class DataBufferMetaData extends RowSetMetaDataImpl implements MetaData {
 			ex.initCause( e );
 			throw ex;
 		}
-		finally {
-			if( in != null ) {
-				in.close( );
-			}
-		}		
 	}
 	
 	/**
@@ -81,7 +78,7 @@ public class DataBufferMetaData extends RowSetMetaDataImpl implements MetaData {
 	 */
 	@Override
 	public List< Column > getColList( ) throws InvalidDatabufferDesc {
-		Column[] cols = _desc.getColumns( );
+		Column[] cols = desc.getColumns( );
 		return( Arrays.asList( cols ) );
 	}
 
@@ -90,7 +87,7 @@ public class DataBufferMetaData extends RowSetMetaDataImpl implements MetaData {
 	 */
 	@Override
 	public Environment getEnvironment( ) {
-		return _env;
+		return env;
 	}
 
 	/**
@@ -98,7 +95,7 @@ public class DataBufferMetaData extends RowSetMetaDataImpl implements MetaData {
 	 */
 	@Override
 	public String getDataBufferName( ) {
-		return( _sDataBufferName );
+		return( sDataBufferName );
 	}
 
 	/**
@@ -106,7 +103,7 @@ public class DataBufferMetaData extends RowSetMetaDataImpl implements MetaData {
 	 */
 	@Override
 	public DataBufferDesc getDescription( ) {
-		return( _desc );
+		return( desc );
 	}
 
 	/**
@@ -115,7 +112,7 @@ public class DataBufferMetaData extends RowSetMetaDataImpl implements MetaData {
 	@Override
 	public String getDescriptionAsJson( ) {
 		Gson gson = new Gson( );
-		return( gson.toJson( _desc ) );
+		return( gson.toJson( desc ) );
 	}
 
 	/**
@@ -123,7 +120,7 @@ public class DataBufferMetaData extends RowSetMetaDataImpl implements MetaData {
 	 */
 	@Override
 	public List< Column > getUpdatableCols( ) {
-		return( _updatableCols );
+		return( updatableCols );
 	}
 
 	/**
@@ -131,7 +128,7 @@ public class DataBufferMetaData extends RowSetMetaDataImpl implements MetaData {
 	 */
 	@Override
 	public List< String > getUpdatableColNames( ) {
-		return( _colUpdName );
+		return( colUpdName );
 	}
 	
 	/**
@@ -149,19 +146,14 @@ public class DataBufferMetaData extends RowSetMetaDataImpl implements MetaData {
 	/**
 	 * Sets rowset metadata.
 	 * 
-	 * @throws StandardException 
-	 * @throws IOException 
-	 * @throws InvalidDatabufferDesc 
-	 * @throws SQLException
+	 * @throws Exception 
 	 */
-	private void setMetaData( ) 
-		throws SQLException, IOException, StandardException, InvalidDatabufferDesc 
-	{
+	private void setMetaData( ) throws Exception {
 		int iCol = 0;
-		String sTable = _desc.getTable( ).getUpdateTableName( );
+		String sTable = desc.getTable( ).getUpdateTableName( );
 		ArrayList< String > colNames = new ArrayList< String >( );
-		setColumnCount( _desc.getColumns( ).length );
-		for( Column col : _desc.getColumns( ) ) {
+		setColumnCount( desc.getColumns( ).length );
+		for( Column col : desc.getColumns( ) ) {
 			col.setColNum( iCol );
 			colNames.add( col.getName( ) );
 			setColumnName( iCol + 1, col.getName( ) );
@@ -175,15 +167,15 @@ public class DataBufferMetaData extends RowSetMetaDataImpl implements MetaData {
 			);
 			onSetMetaData( col );
 			if( col.isUpdate( ) ) {
-				_colUpdName.add( col.getName( ) );
-				_updatableCols.add( col );
+				colUpdName.add( col.getName( ) );
+				updatableCols.add( col );
 			}
 			if(	Column.DDDB.equals( col.getStyle( ) ) ) {
 				setValues( col );
 			}
 			iCol++;
 		}
-		_desc.setColNames( colNames.toArray( new String[ colNames.size( ) ] ) );
+		desc.setColNames( colNames.toArray( new String[ colNames.size( ) ] ) );
 	}
 
 	/**
@@ -192,17 +184,12 @@ public class DataBufferMetaData extends RowSetMetaDataImpl implements MetaData {
 	 * @param col
 	 *            the column
 	 *            
-	 * @throws StandardException 
-	 * @throws SQLException 
-	 * @throws IOException          
-	 * @throws InvalidDatabufferDesc 
+	 * @throws Exception 
 	 */
-	private void setValues( 
-		Column col 
-	) throws InvalidDatabufferDesc, IOException, SQLException, StandardException {
+	private void setValues( Column col ) throws Exception {
 		DataBuffer dddb = null;
 		try {
-			dddb = new DataBuffer( new DataBufferMetaData( col.getDDDBName( ), _env ) );
+			dddb = new DataBuffer( new DataBufferMetaData( col.getDDDBName( ), env ) );
 			dddb.retrieve( );
 			String[] asColName = { col.getDisplayCol( ), col.getDataCol( ) };
 			List< Value > values = new ArrayList< Value >( );

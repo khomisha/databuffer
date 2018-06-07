@@ -82,7 +82,8 @@ public class Column implements Serializable {
 	@SerializedName( "dddbDataColumn" ) private String sDDDBDataCol;
 	@SerializedName( "reportParam" ) private String sReportParam;
 	@SerializedName( "colNum" ) private int iColNum;
-	@SerializedName( "pattern" ) private String sPattern;
+	@SerializedName( "pattern" ) private String sPattern = "";
+	@SerializedName( "width" ) private int iWidth = 0;
 	
 	public Column( ) {
 	}
@@ -433,5 +434,23 @@ public class Column implements Serializable {
 	 */
 	public void setPattern( String sPattern ) {
 		this.sPattern = sPattern;
+	}
+
+	/**
+	 * Returns column width in pixels
+	 * 
+	 * @return the column width
+	 */
+	public int getWidth( ) {
+		return( iWidth );
+	}
+
+	/**
+	 * Sets column width in pixels
+	 * 
+	 * @param iWidth the column width to set
+	 */
+	public void setWidth( int iWidth ) {
+		this.iWidth = iWidth;
 	}
 }

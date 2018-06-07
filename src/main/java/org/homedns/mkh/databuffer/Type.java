@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Mikhail Khodonov
+ * Copyright 2014-2018 Mikhail Khodonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -25,18 +25,23 @@ import java.sql.Types;
  *
  */
 public enum Type {
+	/**
+	 * HEXSTRING hexadecimal string contains hexadecimal digits symbols
+	 * ASCIISTRING ascii string contains ascii character set symbols only 
+	 */
 	STRING( "STRING" ), BYTE( "BYTE" ), SHORT( "SHORT" ), INT( "INT" ), LONG( "LONG" ),
-	TIMESTAMP( "TIMESTAMP" ), DOUBLE( "DOUBLE" ), FLOAT( "FLOAT" ), BOOLEAN( "BOOLEAN" );
+	TIMESTAMP( "TIMESTAMP" ), DOUBLE( "DOUBLE" ), FLOAT( "FLOAT" ), BOOLEAN( "BOOLEAN" ),
+	HEXSTRING( "HEXSTRING" ), ASCIISTRING( "ASCIISTRING" );
 
-	private String _sName;
-	private int _iSQLType;
-	private int _iLength;
+	private String sName;
+	private int iSQLType;
+	private int iLength;
 	
 	/**
 	 * @param sName the type name
 	 */
 	private Type( String sName ) {
-		_sName = sName;
+		this.sName = sName;
 		setSQLTypeAndLength( sName );
 	}
 
@@ -46,7 +51,7 @@ public enum Type {
 	 * @return the type name
 	 */
 	public String getName( ) {
-		return( _sName );
+		return( sName );
 	}
 
 	/**
@@ -56,53 +61,60 @@ public enum Type {
 	 * @return the the sql type
 	 */
 	public int getSQLType( ) {
-		return( _iSQLType );
+		return( iSQLType );
 	}
 	
 	/**
-	 * Returns data type length in bytes, for STRING data type returns
-	 * multiplier, actual length in bytes = multiplier * length in symbols
+	 * Returns data type length in bytes, for STRING data type returns 0 because
+	 * the length in bytes depends on string length in chars, content and
+	 * encoding, for HEXSTRING and ASCIISTRING data types returns 0 because the
+	 * length in bytes equals number of chars in hex string.
 	 * 
 	 * @return the length in bytes
 	 */
 	public int getLength( ) {
-		return( _iLength );
+		return( iLength );
 	}
 
 	/**
 	 * Sets sql type and length in bytes for specified java data type
 	 * 
-	 * @param type
-	 *            the java data type
+	 * @param sName the type name
 	 */
 	private void setSQLTypeAndLength( String sName ) {
 		if( "STRING".equals( sName ) ) {
-			_iSQLType = Types.VARCHAR;
-			_iLength = 2;
+			iSQLType = Types.VARCHAR;
+			iLength = 0;
+		} else if( "HEXSTRING".equals( sName ) ) {
+			iSQLType = Types.VARCHAR;
+			iLength = 0;
+		} else if( "ASCIISTRING".equals( sName ) ) {
+			iSQLType = Types.VARCHAR;
+			iLength = 0;
 		} else if( "BYTE".equals( sName ) ) {
-			_iSQLType = Types.TINYINT;
-			_iLength = 1;
+			iSQLType = Types.TINYINT;
+			iLength = 1;
 		} else if( "SHORT".equals( sName ) ) {
-			_iSQLType = Types.SMALLINT;
-			_iLength = 2;
+			iSQLType = Types.SMALLINT;
+			iLength = 2;
 		} else if( "INT".equals( sName ) ) {
-			_iSQLType = Types.INTEGER;
-			_iLength = 4;
+			iSQLType = Types.INTEGER;
+			iLength = 4;
 		} else if( "LONG".equals( sName ) ) {
-			_iSQLType = Types.BIGINT;
-			_iLength = 8;
+			iSQLType = Types.BIGINT;
+			iLength = 8;
 		} else if( "TIMESTAMP".equals( sName ) ) {
-			_iSQLType = Types.TIMESTAMP;
-			_iLength = 8;
+			iSQLType = Types.TIMESTAMP;
+			iLength = 8;
 		} else if( "DOUBLE".equals( sName ) ) {
-			_iSQLType = Types.DOUBLE;
-			_iLength = 8;
+			iSQLType = Types.DOUBLE;
+			iLength = 8;
 		} else if( "FLOAT".equals( sName ) ) {
-			_iSQLType = Types.FLOAT;
-			_iLength = 8;
+			iSQLType = Types.FLOAT;
+			iLength = 8;
 		} else if( "BOOLEAN".equals( sName ) ) {
-			_iSQLType = Types.BOOLEAN;
-			_iLength = 1;
+			iSQLType = Types.BOOLEAN;
+			iLength = 1;
 		} 
 	}
 }
