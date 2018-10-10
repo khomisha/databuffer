@@ -25,13 +25,16 @@ import java.sql.Types;
  *
  */
 public enum Type {
-	/**
-	 * HEXSTRING hexadecimal string contains hexadecimal digits symbols
-	 * ASCIISTRING ascii string contains ascii character set symbols only 
-	 */
 	STRING( "STRING" ), BYTE( "BYTE" ), SHORT( "SHORT" ), INT( "INT" ), LONG( "LONG" ),
 	TIMESTAMP( "TIMESTAMP" ), DOUBLE( "DOUBLE" ), FLOAT( "FLOAT" ), BOOLEAN( "BOOLEAN" ),
-	HEXSTRING( "HEXSTRING" ), ASCIISTRING( "ASCIISTRING" );
+	/**
+	 * hexadecimal string contains hexadecimal digits symbols
+	 */
+	HEXSTRING( "HEXSTRING" ),
+	/**
+	 * ascii string contains ascii character set symbols only
+	 */
+	ASCIISTRING( "ASCIISTRING" );
 
 	private String sName;
 	private int iSQLType;

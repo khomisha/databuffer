@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2014 Mikhail Khodonov
+ * Copyright 2007-2018 Mikhail Khodonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -28,8 +28,12 @@ import java.util.regex.Pattern;
  * Implements various service methods
  */
 public class Util {
-	static final String HEXES = "0123456789ABCDEF";
-	private static Pattern _numPattern = Pattern.compile( "-?\\d+(\\.\\d+)?" ); 
+	/**
+	 * default locale 'en'
+	 */
+	public static final String DEFAULT_LOCALE   = "en"; 
+	private static final String HEXES = "0123456789ABCDEF";
+	private static Pattern numPattern = Pattern.compile( "-?\\d+(\\.\\d+)?" ); 
 
 	/**
 	 * Assembles an array elements to string using a delimiter string.
@@ -115,7 +119,7 @@ public class Util {
 	 * @return true if the string is a number; false otherwise.
 	 */
 	public static boolean isNumber( String s ) { 
-	  return( _numPattern.matcher( s ).matches( ) );  
+	  return( numPattern.matcher( s ).matches( ) );  
 	}
 
 	/**
