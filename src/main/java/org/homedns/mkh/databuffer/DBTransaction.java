@@ -20,8 +20,6 @@ package org.homedns.mkh.databuffer;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Locale;
-
 import javax.sql.DataSource;
 
 /**
@@ -70,9 +68,7 @@ public class DBTransaction {
 			return( dataSource.getConnection( ) );			
 		}
 		catch( SQLException e ) {
-			throw new DBConnectionUnavailableException( 
-				Util.getBundle( Locale.getDefault( ) ).getString( "connUnavailable" ), e 
-			);
+			throw new ResourceClosedException( e );
 		}
 	}
 

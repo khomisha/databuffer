@@ -61,6 +61,7 @@ public class DataBufferMetaData extends RowSetMetaDataImpl implements MetaData {
 				new FileReader( env.getDataBufferFilename( sDataBufferName ) ) 
 			);
 		) {
+			
 			desc = new Gson( ).fromJson( in, DataBufferDesc.class );
 			desc.check( );
 			setMetaData( );

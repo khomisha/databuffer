@@ -89,8 +89,8 @@ import com.google.gson.annotations.SerializedName;
  *           "width": 0,				 - column width in pixels, 0 means undefined
  *           "required": true,           - mandatory flag (true|false)
  *           "mask": "",                 - the keystroke filter mask to be applied to the column input value type (regex expression),
- *           "values": [""],             - array contains pairs display value - actual value,
- *                                         applied only for dddb, ddlb, checkbox and radiobutton styles.
+ *                                         Applied only for dddb, ddlb, checkbox and radiobutton styles.
+ *           "values": [""],             - array contains pairs display value - actual value
  *           "dddbName": "",             - dropdown databuffer name
  *           "dddbDisplayColumn": "",    - display column name
  *           "dddbDataColumn": "",       - data column name
