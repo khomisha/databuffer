@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Mikhail Khodonov
+ * Copyright 2017-2018 Mikhail Khodonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -21,25 +21,35 @@ package org.homedns.mkh.databuffer;
 import java.sql.SQLException;
 
 /**
- * Resource closed exception, i.e. connection pool
+ * Database connection unavailable exception
  *
  */
 @SuppressWarnings( "serial" )
-public class ResourceClosedException extends SQLException {
+public class DBConnectionUnavailableException extends SQLException {
 
 	/**
 	 * @param cause
 	 *            the cause (which is saved for later retrieval by the
 	 *            {@link #getCause()} method).
 	 */
-	public ResourceClosedException( Throwable cause ) {
+	public DBConnectionUnavailableException( Throwable cause ) {
 		super( cause );
 	}
 
 	/**
 	 * @param reason a description of the exception
 	 */
-	public ResourceClosedException( String reason ) {
+	public DBConnectionUnavailableException( String reason ) {
 		super( reason );
+	}
+
+	/**
+	 * @param reason a description of the exception
+	 * @param cause
+	 *            the cause (which is saved for later retrieval by the
+	 *            {@link #getCause()} method).
+	 */
+	public DBConnectionUnavailableException( String reason, Throwable cause ) {
+		super( reason, cause );
 	}
 }

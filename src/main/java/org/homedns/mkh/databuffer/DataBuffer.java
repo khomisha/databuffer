@@ -588,12 +588,12 @@ public class DataBuffer extends WebRowSetImpl {
 	public int retrieve( ) throws SQLException, InvalidDatabufferDesc {
 		Connection conn = null;
 		int iPageSize = getPageSize( );
-		if( iPageSize > 0 && pagingConn == null ) {
-			// server paging switch on
-			pagingConn = getEnvironment( ).getTransObject( ).getConnection( RETRIEVE );
-		}
-		conn = iPageSize > 0 ? pagingConn : getEnvironment( ).getTransObject( ).getConnection( RETRIEVE ); 
 		try { 
+			if( iPageSize > 0 && pagingConn == null ) {
+				// server paging switch on
+				pagingConn = getEnvironment( ).getTransObject( ).getConnection( RETRIEVE );
+			}
+			conn = iPageSize > 0 ? pagingConn : getEnvironment( ).getTransObject( ).getConnection( RETRIEVE );
 			LOG.debug( getDataBufferName( ) + ": " + getCommand( ) );
 			execute( conn );
 			if( iPageSize > 0 ) {
