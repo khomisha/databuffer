@@ -34,19 +34,11 @@ import org.homedns.mkh.databuffer.Environment;
 public abstract class AbstractDataBufferManager implements Environment {	
 	private static final Logger LOG = Logger.getLogger( AbstractDataBufferManager.class );
 
-	private ConcurrentHashMap< String, ConcurrentHashMap< Long, DataBuffer > > dbs = (
-		new ConcurrentHashMap< String, ConcurrentHashMap< Long, DataBuffer > >( )
-	);
-	private DBTransaction sqlca; 
-	/**
-	 * default server locale
-	 */
-	private Locale locale = Locale.US; 
+	private ConcurrentHashMap< String, ConcurrentHashMap< Long, DataBuffer > > dbs = new ConcurrentHashMap< >( );
+	private DBTransaction transObj; 
+	private Locale locale; 
 	private SimpleDateFormat cliDateFormat;
-	/**
-	 * default server date time format
-	 */
-	private SimpleDateFormat srvDateFormat = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss" );
+	private SimpleDateFormat srvDateFormat;
 	
 	/**
 	* Closes data buffer manager and all bound data buffers
@@ -122,7 +114,7 @@ public abstract class AbstractDataBufferManager implements Environment {
 	 */
 	@Override
 	public SimpleDateFormat getServerDateFormat( ) {
-		return( srvDateFormat );
+		return( ( srvDateFormat == null ) ? Environment.super.getServerDateFormat( ) : srvDateFormat );
 	}
 
 	/**
@@ -130,7 +122,7 @@ public abstract class AbstractDataBufferManager implements Environment {
 	 */
 	@Override
 	public Locale getLocale( ) {
-		return( locale );
+		return( ( locale == null ) ? Environment.super.getLocale( ) : locale );
 	}
 
 	/**
@@ -138,7 +130,7 @@ public abstract class AbstractDataBufferManager implements Environment {
 	 */
 	@Override
 	public DBTransaction getTransObject( ) {
-		return( sqlca );
+		return( transObj );
 	}
 
 	/**
@@ -146,8 +138,8 @@ public abstract class AbstractDataBufferManager implements Environment {
 	 * 
 	 * @param sqlca the transaction object to set
 	 */
-	public void setTransObject( DBTransaction sqlca ) {
-		this.sqlca = sqlca;
+	public void setTransObject( DBTransaction transObj ) {
+		this.transObj = transObj;
 	}
 
 	/**
@@ -241,11 +233,10 @@ public abstract class AbstractDataBufferManager implements Environment {
 		if( sDataBufferName == null || "".equals( sDataBufferName ) ) {
 			throw new IllegalArgumentException( sDataBufferName );
 		}
-		String sLocale = locale.getLanguage( );
 		return(
-			Util.DEFAULT_LOCALE.equals( sLocale ) || "".equals( sLocale ) ? 
+			Environment.DEFAULT_LOCALE.equals( locale ) ? 
 			sDataBufferName : 
-			sDataBufferName + "_" + sLocale
+			sDataBufferName + "_" + locale.getLanguage( )
 		);
 	}
 

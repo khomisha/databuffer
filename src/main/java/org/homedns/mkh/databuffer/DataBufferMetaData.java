@@ -37,9 +37,10 @@ import com.google.gson.stream.JsonReader;
 public class DataBufferMetaData extends RowSetMetaDataImpl implements MetaData {
 	private DataBufferDesc desc;
 	private Environment env;
-	private List< Column > updatableCols = new ArrayList< Column >( );
-	List< String > colUpdName = new ArrayList< String >( );
-	private String sDataBufferName; 
+	private List< Column > updatableCols;
+	List< String > colUpdName;
+	private String sDataBufferName;
+	private Gson gson;
 	
 	/**
 	 * @param sDataBufferName
@@ -56,12 +57,15 @@ public class DataBufferMetaData extends RowSetMetaDataImpl implements MetaData {
 	) throws InvalidDatabufferDesc, IOException {
 		this.env = env;
 		this.sDataBufferName = sDataBufferName;
+		gson = new Gson( );
+		updatableCols = new ArrayList< >( );
+		colUpdName = new ArrayList< >( );
 		try(
 			JsonReader in = new JsonReader( 
 				new FileReader( env.getDataBufferFilename( sDataBufferName ) ) 
 			);
 		) {
-			desc = new Gson( ).fromJson( in, DataBufferDesc.class );
+			desc = gson.fromJson( in, DataBufferDesc.class );
 			desc.check( );
 			setMetaData( );
 		}
@@ -77,8 +81,7 @@ public class DataBufferMetaData extends RowSetMetaDataImpl implements MetaData {
 	 */
 	@Override
 	public List< Column > getColList( ) throws InvalidDatabufferDesc {
-		Column[] cols = desc.getColumns( );
-		return( Arrays.asList( cols ) );
+		return( Arrays.asList( desc.getColumns( ) ) );
 	}
 
 	/**
@@ -110,7 +113,6 @@ public class DataBufferMetaData extends RowSetMetaDataImpl implements MetaData {
 	 */
 	@Override
 	public String getDescriptionAsJson( ) {
-		Gson gson = new Gson( );
 		return( gson.toJson( desc ) );
 	}
 
@@ -150,7 +152,7 @@ public class DataBufferMetaData extends RowSetMetaDataImpl implements MetaData {
 	private void setMetaData( ) throws Exception {
 		int iCol = 0;
 		String sTable = desc.getTable( ).getUpdateTableName( );
-		ArrayList< String > colNames = new ArrayList< String >( );
+		ArrayList< String > colNames = new ArrayList< >( );
 		setColumnCount( desc.getColumns( ).length );
 		for( Column col : desc.getColumns( ) ) {
 			col.setColNum( iCol );
@@ -186,9 +188,7 @@ public class DataBufferMetaData extends RowSetMetaDataImpl implements MetaData {
 	 * @throws Exception 
 	 */
 	private void setValues( Column col ) throws Exception {
-		DataBuffer dddb = null;
-		try {
-			dddb = new DataBuffer( new DataBufferMetaData( col.getDDDBName( ), env ) );
+		try( DataBuffer dddb = new DataBuffer( new DataBufferMetaData( col.getDDDBName( ), env ) ) ) {
 			dddb.retrieve( );
 			String[] asColName = { col.getDisplayCol( ), col.getDataCol( ) };
 			List< Value > values = new ArrayList< Value >( );
@@ -199,11 +199,6 @@ public class DataBufferMetaData extends RowSetMetaDataImpl implements MetaData {
 				values.add( value );
 			}
 			col.setValues( values.toArray( new Value[ values.size( ) ] ) );
-		}
-		finally {
-			if( dddb != null ) {
-				dddb.close( );
-			}
 		}
 	}
 }

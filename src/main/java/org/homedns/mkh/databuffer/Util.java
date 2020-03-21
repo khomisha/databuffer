@@ -28,10 +28,6 @@ import java.util.regex.Pattern;
  * Implements various service methods
  */
 public class Util {
-	/**
-	 * default locale 'en'
-	 */
-	public static final String DEFAULT_LOCALE   = "en"; 
 	private static final String HEXES = "0123456789ABCDEF";
 	private static Pattern numPattern = Pattern.compile( "-?\\d+(\\.\\d+)?" ); 
 

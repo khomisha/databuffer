@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 Mikhail Khodonov
+ * Copyright 2012-2020 Mikhail Khodonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -26,20 +26,25 @@ import java.util.Locale;
  *
  */
 public interface Environment {
+	public static final Locale DEFAULT_LOCALE = Locale.US;
 	
 	/**
 	 * Returns server date format.
 	 * 
 	 * @return the server date format
 	 */
-	public SimpleDateFormat getServerDateFormat( );
+	public default SimpleDateFormat getServerDateFormat( ) {
+		return( new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss" ) );
+	}
 
 	/**
 	 * Returns client date format.
 	 * 
 	 * @return the client date format
 	 */
-	public SimpleDateFormat getClientDateFormat( );
+	public default SimpleDateFormat getClientDateFormat( ) {
+		return( null );
+	}
 
 	/**
 	* Returns transaction object
@@ -51,17 +56,19 @@ public interface Environment {
 	/**
 	 * Returns data buffer description filename
 	 * 
-	 * @param sDataBufferName
-	 *            the data buffer name
+	 * @param sClassname
+	 *            the data buffer class name
 	 * 
 	 * @return the data buffer description filename
 	 */
-	public String getDataBufferFilename( String sDataBufferName );
+	public String getDataBufferFilename( String sClassname );
 	
 	/**
 	 * Returns locale
 	 * 
 	 * @return the locale
 	 */
-	public Locale getLocale( );
+	public default Locale getLocale( ) {
+		return( DEFAULT_LOCALE );
+	}
 }
