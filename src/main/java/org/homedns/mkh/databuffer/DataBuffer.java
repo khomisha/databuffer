@@ -716,11 +716,7 @@ public class DataBuffer extends WebRowSetImpl {
 	 * @param data
 	 *            the data to save
 	 * 
-	 * @throws SQLException
-	 * @throws IOException
-	 * @throws StandardException
-	 * @throws ParseException 
-	 * @throws InvalidDatabufferDesc 
+	 * @throws Exception
 	 */
 	@SuppressWarnings( "unchecked" )
 	public void save( 

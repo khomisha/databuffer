@@ -20,6 +20,7 @@ package org.homedns.mkh.databuffer;
 
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.Reader;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -51,20 +52,19 @@ public class DataBufferMetaData extends RowSetMetaDataImpl implements MetaData {
 	 * @throws IOException
 	 * @throws InvalidDatabufferDesc
 	 */
-	public DataBufferMetaData( 
-		String sDataBufferName, 
-		Environment env 
-	) throws InvalidDatabufferDesc, IOException {
+	public DataBufferMetaData( String sDataBufferName, Environment env ) throws InvalidDatabufferDesc, IOException {
 		this.env = env;
 		this.sDataBufferName = sDataBufferName;
 		gson = new Gson( );
 		updatableCols = new ArrayList< >( );
 		colUpdName = new ArrayList< >( );
-		try(
-			JsonReader in = new JsonReader( 
-				new FileReader( env.getDataBufferFilename( sDataBufferName ) ) 
-			);
-		) {
+		Reader reader = null;
+		if( env.getDataBufferFilename( sDataBufferName ) != null ) {
+			reader = new FileReader( env.getDataBufferFilename( sDataBufferName ) );
+		} else {
+			reader = env.getResourceReader( sDataBufferName );
+		}
+		try( JsonReader in = new JsonReader( reader ) ) {
 			desc = gson.fromJson( in, DataBufferDesc.class );
 			desc.check( );
 			setMetaData( );

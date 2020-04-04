@@ -18,6 +18,7 @@
 
 package org.homedns.mkh.databuffer;
 
+import java.io.Reader;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 
@@ -61,7 +62,20 @@ public interface Environment {
 	 * 
 	 * @return the data buffer description filename
 	 */
-	public String getDataBufferFilename( String sClassname );
+	public default String getDataBufferFilename( String sClassname ) {
+		return( null );
+	}
+	
+	/**
+	 * Returns reader for specified resource
+	 * 
+	 * @param sName the resource name
+	 * 
+	 * @return the reader
+	 */
+	public default Reader getResourceReader( String sName ) {
+		return( null );
+	}
 	
 	/**
 	 * Returns locale
