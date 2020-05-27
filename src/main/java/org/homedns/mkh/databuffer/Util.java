@@ -137,7 +137,8 @@ public class Util {
 	}
 	
 	/**
-	 * Returns true if specified regex match specified string a false otherwise
+	 * Returns true if specified regex match specified string a false otherwise.
+	 * Always returns true if sRegex.isEmpty( ) || sRegex == null || s == null. 
 	 * 
 	 * @param sRegex the regex
 	 * @param s the string to test
@@ -145,7 +146,7 @@ public class Util {
 	 * @return true or false
 	 */
 	public static boolean isValid( String sRegex, String s ) {
-		if( sRegex.isEmpty( ) || sRegex == null ) {
+		if( sRegex.isEmpty( ) || sRegex == null || s == null ) {
 			return( true );
 		}
 		Pattern pattern = Pattern.compile( sRegex );

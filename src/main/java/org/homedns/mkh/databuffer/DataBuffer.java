@@ -80,6 +80,10 @@ public class DataBuffer extends WebRowSetImpl {
 	 * Specifies undefined query 
 	 */
 	public static final int UNKNOWN		= 4;
+	/**
+	 * Emulates modification queries action 
+	 */
+	public static final int PERFORM		= 5;
 	
 	/**
 	 * Specifies XML data format
@@ -293,6 +297,7 @@ public class DataBuffer extends WebRowSetImpl {
 			for( Column col : cols ) {
 				row.add( ( Serializable )getObject( col.getColNum( ) + 1 ) );
 			}
+			list.add( row );
 		}
 		return( list );
 	}
@@ -511,28 +516,7 @@ public class DataBuffer extends WebRowSetImpl {
 				String sValue = row[ col.getColNum( ) ];
 				int iType = metaData.getColumnType( iColIndex );
 				try {
-					if( !"".equals( sValue ) ) {
-						if( iType == Types.TIMESTAMP ) {
-							value = getDateTime( sValue ); 
-						} else if( 
-							iType == Types.TINYINT || 
-							iType == Types.SMALLINT || 
-							iType == Types.INTEGER 
-						) {
-							value = new Integer( sValue );
-						} else if( iType == Types.BIGINT ) {
-							value = new Long( sValue );					
-						} else if( iType == Types.DOUBLE ) {
-							value = new Double( sValue );
-						} else if( iType == Types.FLOAT ) {
-							value = new Float( sValue );
-						} else if( iType == Types.BOOLEAN ) {
-							value = new Boolean( sValue );					
-						}
-					}
-					if( iType == Types.VARCHAR ) {
-						value = sValue;
-					}				
+					value = toSQLType( sValue, iType );				
 				}
 				catch( ParseException e ) {
 					ParseException ex = new ParseException( col.getName( ) + ": " + sValue, 0 );
@@ -550,6 +534,45 @@ public class DataBuffer extends WebRowSetImpl {
 			last( );
 		}
 		LOG.debug( "putJson: success" );
+	}
+	
+	/**
+	 * Converts specified value to the sql data type 
+	 * 
+	 * @param sValue the value
+	 * @param iType the target sql data type
+	 * 
+	 * @return the value or null
+	 * 
+	 * @throws ParseException
+	 */
+	public Serializable toSQLType( String sValue, int iType ) throws ParseException {
+		Serializable value = null;
+		if( sValue != null ) {
+			if( !"".equals( sValue ) ) {
+				if( iType == Types.TIMESTAMP ) {
+					value = getDateTime( sValue ); 
+				} else if( 
+					iType == Types.TINYINT || 
+					iType == Types.SMALLINT || 
+					iType == Types.INTEGER 
+				) {
+					value = new Integer( sValue );
+				} else if( iType == Types.BIGINT ) {
+					value = new Long( sValue );					
+				} else if( iType == Types.DOUBLE ) {
+					value = new Double( sValue );
+				} else if( iType == Types.FLOAT ) {
+					value = new Float( sValue );
+				} else if( iType == Types.BOOLEAN ) {
+					value = new Boolean( sValue );					
+				}
+			}
+			if( iType == Types.VARCHAR ) {
+				value = sValue;
+			}
+		}
+		return( value );
 	}
 	
 	/**
