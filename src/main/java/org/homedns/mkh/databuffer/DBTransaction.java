@@ -24,10 +24,14 @@ import java.util.Locale;
 
 import javax.sql.DataSource;
 
+import org.apache.log4j.Logger;
+
 /**
  * Database transaction object
  */
 public class DBTransaction {
+	private static final Logger LOG = Logger.getLogger( DBTransaction.class );
+
 	private SessionParameters sessionParams;
 	private DataSource dataSource;
 
@@ -70,6 +74,7 @@ public class DBTransaction {
 			return( dataSource.getConnection( ) );			
 		}
 		catch( SQLException e ) {
+			LOG.error( e.getMessage( ), e );
 			throw new DBConnectionUnavailableException( 
 				Util.getBundle( Locale.getDefault( ) ).getString( "connUnavailable" ), e 
 			);

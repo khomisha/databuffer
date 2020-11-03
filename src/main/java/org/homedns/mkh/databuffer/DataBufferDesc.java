@@ -94,9 +94,10 @@ import com.google.gson.annotations.SerializedName;
  *           "dddbName": "",             - dropdown databuffer name
  *           "dddbDisplayColumn": "",    - display column name
  *           "dddbDataColumn": "",       - data column name
- *           "reportParam" : ""          - indicates cell (column,row) in excel sheet template where column value 
+ *           "reportParam" : "",         - indicates cell (column,row) in excel sheet template where column value 
  *                                         should be inserted otherwise empty string. Column value must be scalar
  *                                         for given result set
+ *           "argument": false			 - argument flag (true|false), default false
  *       },
  *       ......
  *       {
@@ -119,7 +120,8 @@ import com.google.gson.annotations.SerializedName;
  *           "dddbName": "packet_type",
  *           "dddbDisplayColumn": "pct_name",
  *           "dddbDataColumn": "pct_id",
- *           "reportParam" : "2,3"
+ *           "reportParam" : "2,3",
+ *           "argument": true
  *      }
  *   ]
  * }

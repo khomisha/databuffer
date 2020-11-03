@@ -84,6 +84,7 @@ public class Column implements Serializable {
 	@SerializedName( "colNum" ) private int iColNum;
 	@SerializedName( "pattern" ) private String sPattern = "";
 	@SerializedName( "width" ) private int iWidth = 0;
+	@SerializedName( "argument" ) private boolean bArgument = false;
 	
 	public Column( ) {
 	}
@@ -452,5 +453,23 @@ public class Column implements Serializable {
 	 */
 	public void setWidth( int iWidth ) {
 		this.iWidth = iWidth;
+	}
+
+	/**
+	 * Returns column argument flag
+	 * 
+	 * @return the column argument flag
+	 */
+	public boolean isArgument( ) {
+		return bArgument;
+	}
+
+	/**
+	 * Sets column argument flag
+	 * 
+	 * @param bArgument the column argument flag to set
+	 */
+	public void setArgument( boolean bArgument ) {
+		this.bArgument = bArgument;
 	}
 }
