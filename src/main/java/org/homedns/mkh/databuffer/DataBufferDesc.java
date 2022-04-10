@@ -192,7 +192,7 @@ public class DataBufferDesc implements Serializable {
 	 */
 	public Table getTable( ) throws InvalidDatabufferDesc {
 		if( _table == null ) {
-			throw new InvalidDatabufferDesc( "no table" );
+			throw new InvalidDatabufferDesc( _sName + ": no table" );
 		}
 		return( _table );
 	}
@@ -217,7 +217,7 @@ public class DataBufferDesc implements Serializable {
 	 */
 	public Column[] getColumns( ) throws InvalidDatabufferDesc {
 		if( _cols == null || _cols.length < 1 ) {
-			throw new InvalidDatabufferDesc( "no columns" );
+			throw new InvalidDatabufferDesc( _sName + ": no columns" );
 		}
 		return( _cols );
 	}
@@ -264,7 +264,7 @@ public class DataBufferDesc implements Serializable {
 		List< String > colList = Arrays.asList( _asColName );
 		int iIndex = colList.indexOf( sColName );
 		if( iIndex == -1 ) {
-			throw new InvalidDatabufferDesc( "column doesn't exist: " + sColName );
+			throw new InvalidDatabufferDesc( _sName + ": column doesn't exist: " + sColName );
 		}
 		return( _cols[ iIndex ] );
 	}
@@ -277,19 +277,15 @@ public class DataBufferDesc implements Serializable {
 	public void check( ) throws InvalidDatabufferDesc {
 		String sUpdateTable = _table.getUpdateTableName( );
 		if( "".equals( sUpdateTable ) ) {
-			LOG.warn( getName( ) + ": no update table" );
+			LOG.warn( _sName + ": no update table" );
 		}
 		for( Column col : _cols ) {
 			String sColDBName = col.getDBName( );
 			if( "".equals( sColDBName ) ) {
-				LOG.warn( 
-					getName( ) + ": " + col.getName( ) + ": no database column name" 
-				);				
+				LOG.warn( _sName + ": " + col.getName( ) + ": no database column name" );				
 			}
 			if( !"".equals( sUpdateTable ) && !sColDBName.contains( sUpdateTable ) ) {
-				LOG.warn( 
-					getName( ) + ": " + col.getName( ) + ": wrong update table" 
-				);								
+				LOG.warn( _sName + ": " + col.getName( ) + ": wrong update table" );								
 			}
 		}
 	}
