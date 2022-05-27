@@ -16,7 +16,7 @@
  * $Id$
  */
 
-package org.homedns.mkh.databuffer;
+package org.homedns.mkh.databuffer.api;
 
 import java.sql.Connection;
 import java.sql.SQLException;

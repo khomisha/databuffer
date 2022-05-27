@@ -19,7 +19,6 @@
 package org.homedns.mkh.databuffer;
 
 import java.io.Serializable;
-import com.google.gson.annotations.SerializedName;
 
 /**
  * Value contains display value - data value
@@ -28,8 +27,8 @@ import com.google.gson.annotations.SerializedName;
 public class Value  implements Serializable {
 	private static final long serialVersionUID = -2064001953576612248L;
 	
-	@SerializedName( "displayValue" ) private String _sDisplayValue;
-	@SerializedName( "dataValue" ) private String _sDataValue;
+	private String displayValue;
+	private String dataValue;
 	
 	/**
 	 * Returns display value
@@ -37,7 +36,7 @@ public class Value  implements Serializable {
 	 * @return the display value
 	 */
 	public String getDisplayValue( ) {
-		return(  _sDisplayValue );
+		return(  displayValue );
 	}
 	
 	/**
@@ -46,17 +45,17 @@ public class Value  implements Serializable {
 	 * @return the data value
 	 */
 	public String getDataValue( ) {
-		return( _sDataValue );
+		return( dataValue );
 	}
 	
 	/**
 	 * Sets display value
 	 * 
-	 * @param sDisplayValue
+	 * @param displayValue
 	 *            the display value to set
 	 */
-	public void setDisplayValue( String sDisplayValue ) {
-		_sDisplayValue = sDisplayValue;
+	public void setDisplayValue( String displayValue ) {
+		this.displayValue = displayValue;
 	}
 	
 	/**
@@ -66,6 +65,6 @@ public class Value  implements Serializable {
 	 *            the data value to set
 	 */
 	public void setDataValue( String dataValue ) {
-		_sDataValue = dataValue;
+		this.dataValue = dataValue;
 	}
 }

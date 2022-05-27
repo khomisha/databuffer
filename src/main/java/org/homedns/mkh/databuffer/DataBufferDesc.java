@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2014 Mikhail Khodonov
+ * Copyright 2011-2022 Mikhail Khodonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -19,10 +19,14 @@
 package org.homedns.mkh.databuffer;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import javax.sql.RowSetMetaData;
+import javax.sql.rowset.RowSetMetaDataImpl;
 import org.apache.log4j.Logger;
-import com.google.gson.annotations.SerializedName;
+import org.homedns.mkh.databuffer.api.Context;
+import org.homedns.mkh.databuffer.api.DataBuffer;
 
 /**
  * Data buffer's description properties object. Data buffer description is plain text file in JSON format.
@@ -97,7 +101,8 @@ import com.google.gson.annotations.SerializedName;
  *           "reportParam" : "",         - indicates cell (column,row) in excel sheet template where column value 
  *                                         should be inserted otherwise empty string. Column value must be scalar
  *                                         for given result set
- *           "argument": false			 - argument flag (true|false), default false
+ *           "argument": false			 - argument flag (true|false), default false, 
+ *           							   it specifies that the value in this column is used as a retrieve argument in non GUI applications
  *       },
  *       ......
  *       {
@@ -128,40 +133,85 @@ import com.google.gson.annotations.SerializedName;
  * </pre>
  */
 public class DataBufferDesc implements Serializable {
-	private static final long serialVersionUID = 5105992519051332303L;
+	private static final long serialVersionUID = -8033236221812557557L;
 	private static final Logger LOG = Logger.getLogger( DataBufferDesc.class );
 	
-	@SerializedName( "name" ) private String _sName;
-	@SerializedName( "title" ) private String _sTitle;
-	@SerializedName( "table" ) private Table _table;
-	@SerializedName( "columns" ) private Column[] _cols;
-	@SerializedName( "colsNames" ) private String[] _asColName;
+	private String name;
+	private String title;
+	private Table table;
+	private Column[] columns;
+	private List< String > colNames;
+	private transient RowSetMetaDataImpl metaData;
+	private transient List< String > updatableColNames;
 	
 	public DataBufferDesc( ) {
+	}
+	
+	/**
+	 * Inits data buffer description object
+	 * 
+	 * @param context the context
+	 * 
+	 * @throws Exception
+	 */
+	public void init( Context context ) throws Exception {
+		check( );
+		colNames = new ArrayList< >( getColumns( ).length );
+		updatableColNames = new ArrayList< >( );
+		metaData = new RowSetMetaDataImpl( );
+		metaData.setColumnCount( getColumns( ).length );
+		int iCol = 0;
+		for( Column col : getColumns( ) ) {
+			col.setColNum( iCol );
+			colNames.add( col.getName( ) );
+			if( col.isUpdate( ) ) {
+				updatableColNames.add( col.getName( ) );
+			}
+			metaData.setColumnName( iCol + 1, col.getName( ) );
+			metaData.setColumnType( iCol + 1, col.getType( ).getSQLType( ) );
+			metaData.setTableName( iCol + 1, getTable( ).getUpdateTableName( ) );
+			metaData.setNullable( 
+				iCol + 1, 
+				col.isRequired( ) ? RowSetMetaData.columnNoNulls : RowSetMetaData.columnNullable 
+			);
+			if(	Column.DDDB.equals( col.getStyle( ) ) ) {
+				try( DataBuffer dddb = context.getDataBuffer( col.getDDDBName( ) ) ) {
+					dddb.retrieve( );
+					String[] asColName = { col.getDisplayCol( ), col.getDataCol( ) };
+					List< Value > values = new ArrayList< Value >( );
+					for( String[] row : dddb.getData( asColName ) ) {
+						Value value = new Value( );
+						value.setDisplayValue( row[ 0 ] );
+						value.setDataValue( row[ 1 ] );
+						values.add( value );
+					}
+					col.setValues( values.toArray( new Value[ values.size( ) ] ) );
+				}
+			}
+			iCol++;
+		}
 	}
 	
 	/**
 	 * Returns data buffer name
 	 * 
 	 * @return the data buffer name
-	 * 
-	 * @throws InvalidDatabufferDesc
 	 */
-	public String getName( ) throws InvalidDatabufferDesc {
-		if( _sName == null || "".equals( _sName ) ) {
-			throw new InvalidDatabufferDesc( "no data buffer name" );
+	public String getName( ) {
+		if( name == null || "".equals( name ) ) {
+			throw new IllegalArgumentException( "no data buffer name" );
 		}
-		return( _sName );
+		return( name );
 	}
 	
 	/**
 	 * Sets data buffer name
 	 * 
-	 * @param sName
+	 * @param name
 	 *            the data buffer name to set
 	 */
-	public void setName( String sName ) {
-		_sName = sName;
+	public void setName( String name ) {
+		this.name = name;
 	}
 	
 	/**
@@ -170,31 +220,29 @@ public class DataBufferDesc implements Serializable {
 	 * @return the data buffer title
 	 */
 	public String getTitle( ) {
-		return( _sTitle );
+		return( title );
 	}
 	
 	/**
 	 * Sets data buffer title
 	 * 
-	 * @param sTitle
+	 * @param title
 	 *            the data buffer title to set
 	 */
-	public void setTitle( String sTitle ) {
-		_sTitle = sTitle;
+	public void setTitle( String title ) {
+		this.title = title;
 	}
 	
 	/**
 	 * Returns data buffer table
 	 * 
 	 * @return the data buffer table
-	 * 
-	 * @throws InvalidDatabufferDesc 
 	 */
-	public Table getTable( ) throws InvalidDatabufferDesc {
-		if( _table == null ) {
-			throw new InvalidDatabufferDesc( _sName + ": no table" );
+	public Table getTable( ) {
+		if( table == null ) {
+			throw new IllegalArgumentException( name + ": no table section" );
 		}
-		return( _table );
+		return( table );
 	}
 
 	/**
@@ -204,7 +252,7 @@ public class DataBufferDesc implements Serializable {
 	 *            the data buffer table to set
 	 */
 	public void setTable( Table table ) {
-		_table = table;
+		this.table = table;
 	}
 	
 	/**
@@ -212,82 +260,103 @@ public class DataBufferDesc implements Serializable {
 	 * Don't change columns order defined in json description file
 	 * 
 	 * @return the data buffer columns
-	 * 
-	 * @throws InvalidDatabufferDesc 
 	 */
-	public Column[] getColumns( ) throws InvalidDatabufferDesc {
-		if( _cols == null || _cols.length < 1 ) {
-			throw new InvalidDatabufferDesc( _sName + ": no columns" );
+	public Column[] getColumns( ) {
+		if( columns == null || columns.length < 1 ) {
+			throw new IllegalArgumentException( name + ": no columns section" );
 		}
-		return( _cols );
+		return( columns );
 	}
 	
 	/**
 	 * Sets data buffer columns
 	 * 
-	 * @param cols the data buffer columns to set
+	 * @param columns the data buffer columns to set
 	 */
-	public void setColumns( Column[] cols ) {
-		_cols = cols;
+	public void setColumns( Column[] columns ) {
+		this.columns = columns;
 	}
 	
 	/**
-	 * Returns column names array
+	 * Returns column names list
 	 * 
-	 * @return the column names array
+	 * @return the column names list
 	 */
-	public String[] getColNames( ) {
-		return( _asColName );
+	public List< String > getColNames( ) {
+		return( colNames );
+	}
+	
+	/**
+	 * @param colNames the column names to set
+	 */
+	public void setColNames( List< String > colNames ) {
+		this.colNames = colNames;
 	}
 
 	/**
-	 * Sets column names array
+	 * Returns updatable column names list
 	 * 
-	 * @param asColName
-	 *            the column names array to set
+	 * @return the updatable column names list
 	 */
-	public void setColNames( String[] asColName ) {
-		_asColName = asColName;
+	public List< String > getUpdatableColNames( ) {
+		return( updatableColNames );
 	}
 
 	/**
 	 * Returns column by it's name
 	 * 
-	 * @param sColName
+	 * @param colName
 	 *            the column name
 	 * 
 	 * @return the column
-	 * 
-	 * @throws InvalidDatabufferDesc 
 	 */
-	public Column getColumn( String sColName ) throws InvalidDatabufferDesc {
-		List< String > colList = Arrays.asList( _asColName );
-		int iIndex = colList.indexOf( sColName );
+	public Column getColumn( String colName ) {
+		int iIndex = colNames.indexOf( colName );
 		if( iIndex == -1 ) {
-			throw new InvalidDatabufferDesc( _sName + ": column doesn't exist: " + sColName );
+			throw new IllegalArgumentException( name + ": column doesn't exist: " + colName );
 		}
-		return( _cols[ iIndex ] );
+		return( columns[ iIndex ] );
 	}
 	
 	/**
+	 * Returns rowset metadata 
+	 * 
+	 * @return the rowset metadata
+	 */
+	public RowSetMetaDataImpl getMetaData( ) {
+		return( metaData );
+	}
+
+	/**
 	 * Checks data buffer description incompleteness
 	 * 
-	 * @throws InvalidDatabufferDesc
+	 * @throws Exception
 	 */
-	public void check( ) throws InvalidDatabufferDesc {
-		String sUpdateTable = _table.getUpdateTableName( );
-		if( "".equals( sUpdateTable ) ) {
-			LOG.warn( _sName + ": no update table" );
-		}
-		for( Column col : _cols ) {
-			String sColDBName = col.getDBName( );
-			if( "".equals( sColDBName ) ) {
-				LOG.warn( _sName + ": " + col.getName( ) + ": no database column name" );				
+	private void check( ) throws Exception {
+		getName( );
+		getTable( );
+		table.getQuery( );
+		table.getPKcol( );
+		String sUptadeTable = table.getUpdateTableName( );
+		getColumns( );
+		for( Column col : columns ) {
+			col.getName( );
+			col.getDBName( );
+			col.getType( );
+			col.getStyle( );
+			if( col.isUpdate( ) && ( sUptadeTable == null || "".equals( sUptadeTable ) ) ) {
+				LOG.warn( "Updatable column " + col.getName( ) + " and no update table" );								
 			}
-			if( !"".equals( sUpdateTable ) && !sColDBName.contains( sUpdateTable ) ) {
-				LOG.warn( _sName + ": " + col.getName( ) + ": wrong update table" );								
-			}
 		}
+	}
+
+	/**
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString( ) {
+		return "DataBufferDesc [name=" + name + ", title=" + title + ", table=" + table + ", columns="
+			+ Arrays.toString( columns ) + "]";
 	}
 }
 
